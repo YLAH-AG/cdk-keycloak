@@ -66,6 +66,7 @@ new ContainerService(scope: Construct, id: string, props: ContainerServiceProps)
 Name | Type | Description 
 -----|------|-------------
 **applicationLoadBalancer** | <code>[aws_elasticloadbalancingv2.ApplicationLoadBalancer](#aws-cdk-lib-aws-elasticloadbalancingv2-applicationloadbalancer)</code> | <span></span>
+**keycloakUserSecret** | <code>[aws_secretsmanager.ISecret](#aws-cdk-lib-aws-secretsmanager-isecret)</code> | <span></span>
 **service** | <code>[aws_ecs.FargateService](#aws-cdk-lib-aws-ecs-fargateservice)</code> | <span></span>
 
 

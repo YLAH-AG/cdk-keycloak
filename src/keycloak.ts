@@ -522,7 +522,7 @@ export class Database extends Construct {
         vpcSubnets: props.databaseSubnets,
         instanceType: props.instanceType ?? new ec2.InstanceType('r5.large'),
       },
-      parameterGroup: rds.ParameterGroup.fromParameterGroupName(this, 'ParameterGroup', 'default.aurora-mysql5.7'),
+      parameterGroup: rds.ParameterGroup.fromParameterGroupName(this, 'ParameterGroup', 'default.aurora-mysql8.0'),
       backup: {
         retention: props.backupRetention ?? cdk.Duration.days(7),
       },
@@ -683,77 +683,27 @@ export interface ContainerServiceProps {
 export class ContainerService extends Construct {
   readonly service: ecs.FargateService;
   readonly applicationLoadBalancer: elbv2.ApplicationLoadBalancer;
+  readonly keycloakUserSecret: secretsmanager.ISecret;
   constructor(scope: Construct, id: string, props: ContainerServiceProps) {
     super(scope, id);
 
     const region = cdk.Stack.of(this).region;
-    let containerPort = 8443;
-    let protocol = elbv2.ApplicationProtocol.HTTPS;
-    let command = undefined;
-    let s3PingBucket: s3.Bucket | undefined = undefined;
+    const containerPort = 8080;
+    const connectionString = `jdbc:mysql://${props.database.clusterEndpointHostname}:3306/keycloak`;
+    const protocol = elbv2.ApplicationProtocol.HTTP;
+    const entryPoint = ['/opt/keycloak/bin/kc.sh', 'start', '--optimized'];
+    const s3PingBucket = new s3.Bucket(this, 'keycloak_s3_ping');
     const image = props.containerImage ?? ecs.ContainerImage.fromRegistry(this.getKeyCloakDockerImageUri(props.keycloakVersion.version));
-    const isQuarkusDistribution = parseInt(props.keycloakVersion.version.split('.')[0]) > 16;
-    let environment: {[key: string]: string} = {
-      DB_ADDR: props.database.clusterEndpointHostname,
-      DB_DATABASE: 'keycloak',
-      DB_PORT: '3306',
-      DB_USER: 'admin',
-      DB_VENDOR: 'mysql',
-      JDBC_PARAMS: 'useSSL=false',
-      JGROUPS_DISCOVERY_PROTOCOL: 'JDBC_PING',
-      // We don't need to specify `initialize_sql` string into `JGROUPS_DISCOVERY_PROPERTIES` property,
-      // because the default `initialize_sql` is compatible with MySQL. (See: https://github.com/belaban/JGroups/blob/master/src/org/jgroups/protocols/JDBC_PING.java#L55-L60)
-      // But you need to specify `initialize_sql` for PostgreSQL, because `varbinary` schema is not supported. (See: https://github.com/keycloak/keycloak-containers/blob/d4ce446dde3026f89f66fa86b58c2d0d6132ce4d/docker-compose-examples/keycloak-postgres-jdbc-ping.yml#L49)
-      // JGROUPS_DISCOVERY_PROPERTIES: '',
-      // KEYCLOAK_LOGLEVEL: 'DEBUG',
-      PROXY_ADDRESS_FORWARDING: 'true',
+    const secrets: {[key: string]: cdk.aws_ecs.Secret} = {
+      KC_DB_PASSWORD: ecs.Secret.fromSecretsManager(props.database.secret, 'password'),
+      KEYCLOAK_ADMIN: ecs.Secret.fromSecretsManager(props.keycloakSecret, 'username'),
+      KEYCLOAK_ADMIN_PASSWORD: ecs.Secret.fromSecretsManager(props.keycloakSecret, 'password'),
     };
-    let secrets: {[key: string]: cdk.aws_ecs.Secret} = {
-      DB_PASSWORD: ecs.Secret.fromSecretsManager(props.database.secret, 'password'),
-      KEYCLOAK_USER: ecs.Secret.fromSecretsManager(props.keycloakSecret, 'username'),
-      KEYCLOAK_PASSWORD: ecs.Secret.fromSecretsManager(props.keycloakSecret, 'password'),
-    };
-    let portMappings: ecs.PortMapping[] = [
-      { containerPort: containerPort }, // HTTPS web port
-      { containerPort: 7600 }, // jgroups-tcp
-      { containerPort: 57600 }, // jgroups-tcp-fd
-      { containerPort: 55200, protocol: ecs.Protocol.UDP }, // jgroups-udp
-      { containerPort: 54200, protocol: ecs.Protocol.UDP }, // jgroups-udp-fd
+    const portMappings: ecs.PortMapping[] = [
+      { containerPort: containerPort }, // web port
+      { containerPort: 7800 }, // jgroups-s3
+      { containerPort: 57800 }, // jgroups-s3-fd
     ];
-
-    // if this is a quarkus distribution
-    if (isQuarkusDistribution) {
-      s3PingBucket = new s3.Bucket(this, 'keycloak_s3_ping');
-      containerPort = 8080;
-      protocol = elbv2.ApplicationProtocol.HTTP;
-      command = ['start', '--optimized'];
-      environment = {
-        JAVA_OPTS_APPEND: `-Djgroups.s3.region_name=${region} -Djgroups.s3.bucket_name=${s3PingBucket!.bucketName}`,
-        // We have selected the cache stack of 'ec2' which uses S3_PING under the hood
-        // This is the AWS native cluster discovery approach for caching
-        // See: https://www.keycloak.org/server/caching#_transport_stacks
-        KC_CACHE_STACK: 'ec2',
-        KC_DB: 'mysql',
-        KC_DB_URL_DATABASE: 'keycloak',
-        KC_DB_URL_HOST: props.database.clusterEndpointHostname,
-        KC_DB_URL_PORT: '3306',
-        KC_DB_USERNAME: 'admin',
-        KC_HOSTNAME: props.hostname!,
-        KC_HOSTNAME_STRICT_BACKCHANNEL: 'true',
-        KC_PROXY: 'edge',
-      };
-      secrets = {
-        KC_DB_PASSWORD: ecs.Secret.fromSecretsManager(props.database.secret, 'password'),
-        KEYCLOAK_ADMIN: ecs.Secret.fromSecretsManager(props.keycloakSecret, 'username'),
-        KEYCLOAK_ADMIN_PASSWORD: ecs.Secret.fromSecretsManager(props.keycloakSecret, 'password'),
-      };
-      portMappings = [
-        { containerPort: containerPort }, // web port
-        { containerPort: 7800 }, // jgroups-s3
-        { containerPort: 57800 }, // jgroups-s3-fd
-      ];
-    }
-
     const vpc = props.vpc;
     const cluster = new ecs.Cluster(this, 'Cluster', { vpc, containerInsights: true });
     cluster.node.addDependency(props.database);
@@ -774,9 +724,37 @@ export class ContainerService extends Construct {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
+    const s3User = new iam.User(this, 'S3KeycloakUser');
+    const accessKey = new iam.AccessKey(this, 'S3KeycloakUserAccessKey', { user: s3User });
+    this.keycloakUserSecret = new secretsmanager.Secret(this, 'S3KeycloakUserSecret', {
+      secretStringValue: accessKey.secretAccessKey,
+    });
+    s3PingBucket!.grantReadWrite(taskDefinition.taskRole);
+
+    const environment: {[key: string]: string} = {
+      JAVA_OPTS_APPEND: `
+      -Djgroups.s3.region_name=${region}
+      -Djgroups.s3.bucket=${s3PingBucket!.bucketName}
+      -Djgroups.s3.access_key=${accessKey.accessKeyId}
+      -Djgroups.s3.secret_access_key=${accessKey.secretAccessKey}
+      `.replace('\r\n', '').replace('\n', '').replace(/\s+/g, ' '),
+      // We have selected the cache stack of 'ec2' which uses S3_PING under the hood
+      // This is the AWS native cluster discovery approach for caching
+      // See: https://www.keycloak.org/server/caching#_transport_stacks
+      KC_CACHE_STACK: 'ec2',
+      KC_DB: 'mysql',
+      KC_DB_URL_DATABASE: 'keycloak',
+      KC_DB_URL: connectionString,
+      KC_DB_URL_PORT: '3306',
+      KC_DB_USERNAME: 'admin',
+      KC_HOSTNAME: props.hostname!,
+      KC_HOSTNAME_STRICT_BACKCHANNEL: 'true',
+      KC_PROXY: 'edge',
+    };
+
     const kc = taskDefinition.addContainer('keycloak', {
       image,
-      command,
+      entryPoint,
       environment: Object.assign(environment, props.env),
       secrets,
       logging: ecs.LogDrivers.awsLogs({
@@ -796,17 +774,10 @@ export class ContainerService extends Construct {
       desiredCount: props.nodeCount ?? 2,
       healthCheckGracePeriod: cdk.Duration.seconds(120),
     });
-    // we need to allow traffic from the same secret group for keycloak cluster with jdbc_ping
-    if (isQuarkusDistribution) {
-      this.service.connections.allowFrom(this.service.connections, ec2.Port.tcp(7800), 'kc jgroups-tcp');
-      this.service.connections.allowFrom(this.service.connections, ec2.Port.tcp(57800), 'kc jgroups-tcp-fd');
-      s3PingBucket!.grantReadWrite(taskDefinition.taskRole);
-    } else {
-      this.service.connections.allowFrom(this.service.connections, ec2.Port.tcp(7600), 'kc jgroups-tcp');
-      this.service.connections.allowFrom(this.service.connections, ec2.Port.tcp(57600), 'kc jgroups-tcp-fd');
-      this.service.connections.allowFrom(this.service.connections, ec2.Port.udp(55200), 'kc jgroups-udp');
-      this.service.connections.allowFrom(this.service.connections, ec2.Port.udp(54200), 'kc jgroups-udp-fd');
-    }
+
+    this.service.connections.allowFrom(this.service.connections, ec2.Port.tcp(7800), 'kc jgroups-tcp');
+    this.service.connections.allowFrom(this.service.connections, ec2.Port.tcp(57800), 'kc jgroups-tcp-fd');
+    s3PingBucket!.grantReadWrite(taskDefinition.taskRole);
 
     if (props.autoScaleTask) {
       const minCapacity = props.autoScaleTask.min ?? props.nodeCount ?? 2;
@@ -855,7 +826,7 @@ export class ContainerService extends Construct {
     if (props.bastion === true) {
       const bast = new ec2.BastionHostLinux(this, 'Bast', {
         vpc,
-        instanceType: new ec2.InstanceType('m5.large'),
+        instanceType: new ec2.InstanceType('t3.small'),
       });
       props.database.connections.allowDefaultPortFrom(bast);
     }
