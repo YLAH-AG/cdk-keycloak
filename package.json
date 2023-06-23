@@ -3,7 +3,7 @@
   "description": "CDK construct library that allows you to create KeyCloak service on AWS in TypeScript or Python",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aws-samples/cdk-keycloak.git"
+    "url": "https://github.com/YLAH-AG/cdk-keycloak.git"
   },
   "scripts": {
     "build": "npx projen build",
