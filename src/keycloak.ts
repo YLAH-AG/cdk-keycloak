@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import {
   aws_certificatemanager as certmgr,
   aws_ec2 as ec2, aws_ecs as ecs, aws_elasticloadbalancingv2 as elbv2,
+  aws_elasticloadbalancingv2_targets as elbTargets,
   aws_iam as iam,
   aws_logs as logs,
   aws_rds as rds,
@@ -285,6 +286,7 @@ export class KeyCloak extends Construct {
   readonly vpc: ec2.IVpc;
   readonly db?: Database;
   readonly applicationLoadBalancer: elbv2.ApplicationLoadBalancer;
+  readonly networkLoadBalancer: elbv2.NetworkLoadBalancer;
   readonly keycloakSecret: secretsmanager.ISecret;
   constructor(scope: Construct, id: string, props: KeyCloakProps) {
     super(scope, id);
@@ -332,6 +334,7 @@ export class KeyCloak extends Construct {
     });
 
     this.applicationLoadBalancer = keycloakContainerService.applicationLoadBalancer;
+    this.networkLoadBalancer = keycloakContainerService.networkLoadBalancer;
     if (!cdk.Stack.of(this).templateOptions.description) {
       cdk.Stack.of(this).templateOptions.description = '(SO8021) - Deploy keycloak on AWS with cdk-keycloak construct library';
     }
@@ -546,7 +549,7 @@ export class Database extends Construct {
       backupRetention: props.backupRetention ?? cdk.Duration.days(7),
       deletionProtection: true,
       removalPolicy: props.removalPolicy ?? cdk.RemovalPolicy.RETAIN,
-      parameterGroup: rds.ParameterGroup.fromParameterGroupName(this, 'ParameterGroup', 'default.aurora-mysql5.7'),
+      parameterGroup: rds.ParameterGroup.fromParameterGroupName(this, 'ParameterGroup', 'default.aurora-mysql8.0'),
     });
     return {
       connections: dbCluster.connections,
@@ -683,6 +686,7 @@ export interface ContainerServiceProps {
 export class ContainerService extends Construct {
   readonly service: ecs.FargateService;
   readonly applicationLoadBalancer: elbv2.ApplicationLoadBalancer;
+  readonly networkLoadBalancer: elbv2.NetworkLoadBalancer;
   readonly keycloakUserSecret: secretsmanager.ISecret;
   constructor(scope: Construct, id: string, props: ContainerServiceProps) {
     super(scope, id);
@@ -729,12 +733,12 @@ export class ContainerService extends Construct {
     this.keycloakUserSecret = new secretsmanager.Secret(this, 'S3KeycloakUserSecret', {
       secretStringValue: accessKey.secretAccessKey,
     });
-    s3PingBucket!.grantReadWrite(taskDefinition.taskRole);
+    s3PingBucket!.grantReadWrite(s3User);
 
     const environment: {[key: string]: string} = {
       JAVA_OPTS_APPEND: `
       -Djgroups.s3.region_name=${region}
-      -Djgroups.s3.bucket=${s3PingBucket!.bucketName}
+      -Djgroups.s3.bucket_name=${s3PingBucket!.bucketName}
       -Djgroups.s3.access_key=${accessKey.accessKeyId}
       -Djgroups.s3.secret_access_key=${accessKey.secretAccessKey}
       `.replace('\r\n', '').replace('\n', '').replace(/\s+/g, ' '),
@@ -792,26 +796,48 @@ export class ContainerService extends Construct {
 
     this.applicationLoadBalancer = new elbv2.ApplicationLoadBalancer(this, 'ALB', {
       vpc,
-      vpcSubnets: props.internetFacing ? props.publicSubnets : props.privateSubnets,
-      internetFacing: props.internetFacing,
+      vpcSubnets: props.privateSubnets,
+      internetFacing: false,
+      // vpcSubnets: props.internetFacing ? props.publicSubnets : props.privateSubnets,
+      // internetFacing: props.internetFacing,
     });
     printOutput(this, 'EndpointURL', `https://${this.applicationLoadBalancer.loadBalancerDnsName}`);
 
-    const listener = this.applicationLoadBalancer.addListener('HttpsListener', {
-      protocol: elbv2.ApplicationProtocol.HTTPS,
-      certificates: [{ certificateArn: props.certificate.certificateArn }],
-    });
+    const listener = this.applicationLoadBalancer.addListener('ALB_TCPListener', { protocol });
+
     listener.addTargets('ECSTarget', {
+      protocol,
+      port: 80,
+      slowStart: cdk.Duration.seconds(60),
+      stickinessCookieDuration: props.stickinessCookieDuration ?? cdk.Duration.days(1),
       targets: [this.service],
       healthCheck: {
         healthyThresholdCount: 3,
       },
-      // set slow_start.duration_seconds to 60
-      // see https://docs.aws.amazon.com/cli/latest/reference/elbv2/modify-target-group-attributes.html
-      slowStart: cdk.Duration.seconds(60),
-      stickinessCookieDuration: props.stickinessCookieDuration ?? cdk.Duration.days(1),
-      port: containerPort,
-      protocol,
+    });
+
+    this.networkLoadBalancer = new elbv2.NetworkLoadBalancer(this, 'NLB', {
+      vpc,
+      vpcSubnets: props.publicSubnets,
+      internetFacing: true,
+      deletionProtection: true,
+    });
+
+    const albTarget = new elbTargets.AlbTarget(this.applicationLoadBalancer, 80);
+
+    const nlbTargetToAlb = new elbv2.NetworkTargetGroup(this, 'NLB_TargetGroup', {
+      targetType: elbv2.TargetType.ALB,
+      port: 80,
+      protocol: elbv2.Protocol.TCP,
+      targets: [albTarget],
+      vpc,
+    });
+
+    this.networkLoadBalancer.addListener('NLB_TCPListener', {
+      port: 443,
+      protocol: elbv2.Protocol.TLS,
+      certificates: [{ certificateArn: props.certificate.certificateArn }],
+      defaultAction: elbv2.NetworkListenerAction.forward([nlbTargetToAlb]),
     });
 
     // allow task execution role to read the secrets

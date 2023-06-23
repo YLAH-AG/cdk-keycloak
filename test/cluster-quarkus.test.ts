@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { App, assertions, Stack } from 'aws-cdk-lib';
 import * as kc from '../src';
 // import '@aws-cdk/assert/jest';
@@ -17,7 +18,7 @@ test.skip('create the default cluster', () => {
   const t = assertions.Template.fromStack(stack);
   t.hasResourceProperties('AWS::RDS::DBCluster', {
     Engine: 'aurora-mysql',
-    DBClusterParameterGroupName: 'default.aurora-mysql5.7',
+    DBClusterParameterGroupName: 'default.aurora-mysql8.0',
     DBSubnetGroupName: {
       Ref: 'KeyCloakDatabaseDBClusterSubnetsE36F1B1B',
     },
@@ -46,6 +47,7 @@ test.skip('create the default cluster', () => {
   // we should have 2 secrets
   t.resourceCountIs('AWS::SecretsManager::Secret', 3);
   // we should have ecs service
+
   t.hasResourceProperties('AWS::ECS::Service', {
     Cluster: {
       Ref: 'KeyCloakKeyCloakContainerSerivceClusterA18E44FF',
@@ -63,7 +65,7 @@ test.skip('create the default cluster', () => {
         ContainerName: 'keycloak',
         ContainerPort: 8080,
         TargetGroupArn: {
-          Ref: 'KeyCloakKeyCloakContainerSerivceALBHttpsListenerECSTargetGroupCE3EF52C',
+          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1',
         },
       },
     ],
@@ -108,9 +110,10 @@ test('with aurora serverless', () => {
 
   // THEN
   const t = assertions.Template.fromStack(stack);
+  fs.writeFileSync('./test.json', JSON.stringify(t, null, 2));
   t.hasResourceProperties('AWS::RDS::DBCluster', {
     Engine: 'aurora-mysql',
-    DBClusterParameterGroupName: 'default.aurora-mysql5.7',
+    DBClusterParameterGroupName: 'default.aurora-mysql8.0',
     EngineMode: 'serverless',
   });
   // we should have 0 db instance in the cluster
@@ -135,7 +138,7 @@ test('with aurora serverless', () => {
         ContainerName: 'keycloak',
         ContainerPort: 8080,
         TargetGroupArn: {
-          Ref: 'KeyCloakKeyCloakContainerSerivceALBHttpsListenerECSTargetGroupCE3EF52C',
+          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1',
         },
       },
     ],
@@ -236,7 +239,7 @@ test('with aurora serverless v2', () => {
         ContainerName: 'keycloak',
         ContainerPort: 8080,
         TargetGroupArn: {
-          Ref: 'KeyCloakKeyCloakContainerSerivceALBHttpsListenerECSTargetGroupCE3EF52C',
+          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1',
         },
       },
     ],
@@ -335,7 +338,7 @@ test('with single rds instance', () => {
         ContainerName: 'keycloak',
         ContainerPort: 8080,
         TargetGroupArn: {
-          Ref: 'KeyCloakKeyCloakContainerSerivceALBHttpsListenerECSTargetGroupCE3EF52C',
+          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1',
         },
       },
     ],

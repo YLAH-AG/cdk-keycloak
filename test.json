@@ -1,0 +1,1419 @@
+{
+  "Description": "(SO8021) - Deploy keycloak on AWS with cdk-keycloak construct library",
+  "Resources": {
+    "KeyCloakKCSecretF8498E5C": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "GenerateSecretString": {
+          "ExcludePunctuation": true,
+          "GenerateStringKey": "password",
+          "PasswordLength": 12,
+          "SecretStringTemplate": "{\"username\":\"keycloak\"}"
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete"
+    },
+    "KeyCloakVpcF3901B3A": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPublicSubnet1Subnet0762DA88": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "CidrBlock": "10.0.0.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public"
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public"
+          },
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PublicSubnet1"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPublicSubnet1RouteTable841A709E": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PublicSubnet1"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPublicSubnet1RouteTableAssociationFF91B678": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "KeyCloakVpcPublicSubnet1RouteTable841A709E"
+        },
+        "SubnetId": {
+          "Ref": "KeyCloakVpcPublicSubnet1Subnet0762DA88"
+        }
+      }
+    },
+    "KeyCloakVpcPublicSubnet1DefaultRoute438FBE69": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "KeyCloakVpcPublicSubnet1RouteTable841A709E"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "KeyCloakVpcIGW69251108"
+        }
+      },
+      "DependsOn": [
+        "KeyCloakVpcVPCGW23A2D9CE"
+      ]
+    },
+    "KeyCloakVpcPublicSubnet1EIP6EA2ED08": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PublicSubnet1"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPublicSubnet1NATGateway923A52EE": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "KeyCloakVpcPublicSubnet1Subnet0762DA88"
+        },
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "KeyCloakVpcPublicSubnet1EIP6EA2ED08",
+            "AllocationId"
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PublicSubnet1"
+          }
+        ]
+      },
+      "DependsOn": [
+        "KeyCloakVpcPublicSubnet1DefaultRoute438FBE69",
+        "KeyCloakVpcPublicSubnet1RouteTableAssociationFF91B678"
+      ]
+    },
+    "KeyCloakVpcPublicSubnet2Subnet22049636": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "CidrBlock": "10.0.64.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public"
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public"
+          },
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PublicSubnet2"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPublicSubnet2RouteTableBE60E8CF": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PublicSubnet2"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPublicSubnet2RouteTableAssociation3117C73A": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "KeyCloakVpcPublicSubnet2RouteTableBE60E8CF"
+        },
+        "SubnetId": {
+          "Ref": "KeyCloakVpcPublicSubnet2Subnet22049636"
+        }
+      }
+    },
+    "KeyCloakVpcPublicSubnet2DefaultRouteCFC19404": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "KeyCloakVpcPublicSubnet2RouteTableBE60E8CF"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "KeyCloakVpcIGW69251108"
+        }
+      },
+      "DependsOn": [
+        "KeyCloakVpcVPCGW23A2D9CE"
+      ]
+    },
+    "KeyCloakVpcPrivateSubnet1SubnetA692DFFF": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "CidrBlock": "10.0.128.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Private"
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Private"
+          },
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PrivateSubnet1"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPrivateSubnet1RouteTableD1A04A09": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PrivateSubnet1"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPrivateSubnet1RouteTableAssociationD9158DB8": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "KeyCloakVpcPrivateSubnet1RouteTableD1A04A09"
+        },
+        "SubnetId": {
+          "Ref": "KeyCloakVpcPrivateSubnet1SubnetA692DFFF"
+        }
+      }
+    },
+    "KeyCloakVpcPrivateSubnet1DefaultRouteA309AD23": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "KeyCloakVpcPrivateSubnet1RouteTableD1A04A09"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "KeyCloakVpcPublicSubnet1NATGateway923A52EE"
+        }
+      }
+    },
+    "KeyCloakVpcPrivateSubnet2SubnetC8682D75": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "CidrBlock": "10.0.192.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Private"
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Private"
+          },
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PrivateSubnet2"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPrivateSubnet2RouteTableEB13A8EA": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc/PrivateSubnet2"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcPrivateSubnet2RouteTableAssociation4BA8795B": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "KeyCloakVpcPrivateSubnet2RouteTableEB13A8EA"
+        },
+        "SubnetId": {
+          "Ref": "KeyCloakVpcPrivateSubnet2SubnetC8682D75"
+        }
+      }
+    },
+    "KeyCloakVpcPrivateSubnet2DefaultRoute8D3CC7CF": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "KeyCloakVpcPrivateSubnet2RouteTableEB13A8EA"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "KeyCloakVpcPublicSubnet1NATGateway923A52EE"
+        }
+      }
+    },
+    "KeyCloakVpcIGW69251108": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "testing-stack/KeyCloak/Vpc"
+          }
+        ]
+      }
+    },
+    "KeyCloakVpcVPCGW23A2D9CE": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        },
+        "InternetGatewayId": {
+          "Ref": "KeyCloakVpcIGW69251108"
+        }
+      }
+    },
+    "KeyCloakDatabaseAuroraServerlessClusterSubnets6166944B": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Subnets for AuroraServerlessCluster database",
+        "SubnetIds": [
+          {
+            "Ref": "KeyCloakVpcPrivateSubnet1SubnetA692DFFF"
+          },
+          {
+            "Ref": "KeyCloakVpcPrivateSubnet2SubnetC8682D75"
+          }
+        ]
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain"
+    },
+    "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "RDS security group",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1"
+          }
+        ],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": {
+              "Fn::GetAtt": [
+                "KeyCloakVpcF3901B3A",
+                "CidrBlock"
+              ]
+            },
+            "Description": {
+              "Fn::Join": [
+                "",
+                [
+                  "from ",
+                  {
+                    "Fn::GetAtt": [
+                      "KeyCloakVpcF3901B3A",
+                      "CidrBlock"
+                    ]
+                  },
+                  ":3306"
+                ]
+              ]
+            },
+            "FromPort": 3306,
+            "IpProtocol": "tcp",
+            "ToPort": 3306
+          }
+        ],
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        }
+      }
+    },
+    "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupfromtestingstackKeyCloakDatabaseAuroraServerlessClusterSecurityGroup272BD4AE3306CF8351DE": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "Description": "from testingstackKeyCloakDatabaseAuroraServerlessClusterSecurityGroup272BD4AE:3306",
+        "FromPort": 3306,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
+            "GroupId"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
+            "GroupId"
+          ]
+        },
+        "ToPort": 3306
+      }
+    },
+    "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupfromtestingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup13620244IndirectPort17F65634": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "Description": "from testingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup13620244:{IndirectPort}",
+        "FromPort": {
+          "Fn::GetAtt": [
+            "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
+            "Endpoint.Port"
+          ]
+        },
+        "GroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
+            "GroupId"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D",
+            "GroupId"
+          ]
+        },
+        "ToPort": {
+          "Fn::GetAtt": [
+            "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
+            "Endpoint.Port"
+          ]
+        }
+      }
+    },
+    "testingstackKeyCloakDatabaseAuroraServerlessClusterSecretE2492D2F3fdaad7efa858a3daf9490cf0a702aeb": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Generated by the CDK for stack: ",
+              {
+                "Ref": "AWS::StackName"
+              }
+            ]
+          ]
+        },
+        "GenerateSecretString": {
+          "ExcludeCharacters": " %+~`#$&*()|[]{}:;<>?!'/@\"\\",
+          "GenerateStringKey": "password",
+          "PasswordLength": 30,
+          "SecretStringTemplate": "{\"username\":\"admin\"}"
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete"
+    },
+    "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B": {
+      "Type": "AWS::SecretsManager::SecretTargetAttachment",
+      "Properties": {
+        "SecretId": {
+          "Ref": "testingstackKeyCloakDatabaseAuroraServerlessClusterSecretE2492D2F3fdaad7efa858a3daf9490cf0a702aeb"
+        },
+        "TargetId": {
+          "Ref": "KeyCloakDatabaseAuroraServerlessClusterDB73D16F"
+        },
+        "TargetType": "AWS::RDS::DBCluster"
+      }
+    },
+    "KeyCloakDatabaseAuroraServerlessClusterDB73D16F": {
+      "Type": "AWS::RDS::DBCluster",
+      "Properties": {
+        "BackupRetentionPeriod": 7,
+        "CopyTagsToSnapshot": true,
+        "DatabaseName": "keycloak",
+        "DBClusterParameterGroupName": "default.aurora-mysql8.0",
+        "DBSubnetGroupName": {
+          "Ref": "KeyCloakDatabaseAuroraServerlessClusterSubnets6166944B"
+        },
+        "DeletionProtection": true,
+        "Engine": "aurora-mysql",
+        "EngineMode": "serverless",
+        "MasterUsername": "admin",
+        "MasterUserPassword": {
+          "Fn::Join": [
+            "",
+            [
+              "{{resolve:secretsmanager:",
+              {
+                "Ref": "testingstackKeyCloakDatabaseAuroraServerlessClusterSecretE2492D2F3fdaad7efa858a3daf9490cf0a702aeb"
+              },
+              ":SecretString:password::}}"
+            ]
+          ]
+        },
+        "StorageEncrypted": true,
+        "VpcSecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
+              "GroupId"
+            ]
+          }
+        ]
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain"
+    },
+    "KeyCloakKeyCloakContainerSerivcekeycloaks3pingA0B30CB4": {
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain"
+    },
+    "KeyCloakKeyCloakContainerSerivceClusterA18E44FF": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterSettings": [
+          {
+            "Name": "containerInsights",
+            "Value": "enabled"
+          }
+        ]
+      },
+      "DependsOn": [
+        "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
+        "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B",
+        "testingstackKeyCloakDatabaseAuroraServerlessClusterSecretE2492D2F3fdaad7efa858a3daf9490cf0a702aeb",
+        "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupfromtestingstackKeyCloakDatabaseAuroraServerlessClusterSecurityGroup272BD4AE3306CF8351DE",
+        "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupfromtestingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup13620244IndirectPort17F65634",
+        "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
+        "KeyCloakDatabaseAuroraServerlessClusterSubnets6166944B"
+      ]
+    },
+    "KeyCloakKeyCloakContainerSerivceTaskRole0658CED2": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs.amazonaws.com"
+              }
+            },
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceTaskRoleDefaultPolicyA2321E87": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "KeyCloakKeyCloakContainerSerivceLogGroup010F2AAE",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B"
+              }
+            },
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "KeyCloakKCSecretF8498E5C"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "KeyCloakKeyCloakContainerSerivceTaskRoleDefaultPolicyA2321E87",
+        "Roles": [
+          {
+            "Ref": "KeyCloakKeyCloakContainerSerivceTaskRole0658CED2"
+          }
+        ]
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceTaskDefTaskRole0DC4D418": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceTaskDefTaskRoleDefaultPolicyE26BE579": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging",
+                "s3:Abort*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "KeyCloakKeyCloakContainerSerivcekeycloaks3pingA0B30CB4",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "KeyCloakKeyCloakContainerSerivcekeycloaks3pingA0B30CB4",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "KeyCloakKeyCloakContainerSerivceTaskDefTaskRoleDefaultPolicyE26BE579",
+        "Roles": [
+          {
+            "Ref": "KeyCloakKeyCloakContainerSerivceTaskDefTaskRole0DC4D418"
+          }
+        ]
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceTaskDef30C9533A": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "EntryPoint": [
+              "/opt/keycloak/bin/kc.sh",
+              "start",
+              "--optimized"
+            ],
+            "Environment": [
+              {
+                "Name": "JAVA_OPTS_APPEND",
+                "Value": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      " -Djgroups.s3.region_name=",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      " -Djgroups.s3.bucket_name=",
+                      {
+                        "Ref": "KeyCloakKeyCloakContainerSerivcekeycloaks3pingA0B30CB4"
+                      },
+                      " -Djgroups.s3.access_key=",
+                      {
+                        "Ref": "KeyCloakKeyCloakContainerSerivceS3KeycloakUserAccessKey5B1BCB76"
+                      },
+                      " -Djgroups.s3.secret_access_key=",
+                      {
+                        "Fn::GetAtt": [
+                          "KeyCloakKeyCloakContainerSerivceS3KeycloakUserAccessKey5B1BCB76",
+                          "SecretAccessKey"
+                        ]
+                      },
+                      " "
+                    ]
+                  ]
+                }
+              },
+              {
+                "Name": "KC_CACHE_STACK",
+                "Value": "ec2"
+              },
+              {
+                "Name": "KC_DB",
+                "Value": "mysql"
+              },
+              {
+                "Name": "KC_DB_URL_DATABASE",
+                "Value": "keycloak"
+              },
+              {
+                "Name": "KC_DB_URL",
+                "Value": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "jdbc:mysql://",
+                      {
+                        "Fn::GetAtt": [
+                          "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
+                          "Endpoint.Address"
+                        ]
+                      },
+                      ":3306/keycloak"
+                    ]
+                  ]
+                }
+              },
+              {
+                "Name": "KC_DB_URL_PORT",
+                "Value": "3306"
+              },
+              {
+                "Name": "KC_DB_USERNAME",
+                "Value": "admin"
+              },
+              {
+                "Name": "KC_HOSTNAME"
+              },
+              {
+                "Name": "KC_HOSTNAME_STRICT_BACKCHANNEL",
+                "Value": "true"
+              },
+              {
+                "Name": "KC_PROXY",
+                "Value": "edge"
+              }
+            ],
+            "Essential": true,
+            "Image": {
+              "Fn::FindInMap": [
+                "KeyCloakKeyCloakContainerSerivceKeycloakImageMapF79EAEA3",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                "uri"
+              ]
+            },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "KeyCloakKeyCloakContainerSerivceLogGroup010F2AAE"
+                },
+                "awslogs-stream-prefix": "keycloak",
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                }
+              }
+            },
+            "Name": "keycloak",
+            "PortMappings": [
+              {
+                "ContainerPort": 8080,
+                "Protocol": "tcp"
+              },
+              {
+                "ContainerPort": 7800,
+                "Protocol": "tcp"
+              },
+              {
+                "ContainerPort": 57800,
+                "Protocol": "tcp"
+              }
+            ],
+            "Secrets": [
+              {
+                "Name": "KC_DB_PASSWORD",
+                "ValueFrom": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Ref": "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B"
+                      },
+                      ":password::"
+                    ]
+                  ]
+                }
+              },
+              {
+                "Name": "KEYCLOAK_ADMIN",
+                "ValueFrom": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Ref": "KeyCloakKCSecretF8498E5C"
+                      },
+                      ":username::"
+                    ]
+                  ]
+                }
+              },
+              {
+                "Name": "KEYCLOAK_ADMIN_PASSWORD",
+                "ValueFrom": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Ref": "KeyCloakKCSecretF8498E5C"
+                      },
+                      ":password::"
+                    ]
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "Cpu": "4096",
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceTaskRole0658CED2",
+            "Arn"
+          ]
+        },
+        "Family": "testingstackKeyCloakKeyCloakContainerSerivceTaskDef799BAD5B",
+        "Memory": "8192",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceTaskDefTaskRole0DC4D418",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceLogGroup010F2AAE": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 30
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain"
+    },
+    "KeyCloakKeyCloakContainerSerivceS3KeycloakUser53D44ACF": {
+      "Type": "AWS::IAM::User"
+    },
+    "KeyCloakKeyCloakContainerSerivceS3KeycloakUserDefaultPolicy65AB4E61": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging",
+                "s3:Abort*"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "KeyCloakKeyCloakContainerSerivcekeycloaks3pingA0B30CB4",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "KeyCloakKeyCloakContainerSerivcekeycloaks3pingA0B30CB4",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "KeyCloakKeyCloakContainerSerivceS3KeycloakUserDefaultPolicy65AB4E61",
+        "Users": [
+          {
+            "Ref": "KeyCloakKeyCloakContainerSerivceS3KeycloakUser53D44ACF"
+          }
+        ]
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceS3KeycloakUserAccessKey5B1BCB76": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": {
+          "Ref": "KeyCloakKeyCloakContainerSerivceS3KeycloakUser53D44ACF"
+        }
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceS3KeycloakUserSecret0C85DF2C": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "SecretString": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceS3KeycloakUserAccessKey5B1BCB76",
+            "SecretAccessKey"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete"
+    },
+    "KeyCloakKeyCloakContainerSerivceService79D3F427": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": {
+          "Ref": "KeyCloakKeyCloakContainerSerivceClusterA18E44FF"
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 50
+        },
+        "DesiredCount": 2,
+        "EnableECSManagedTags": false,
+        "HealthCheckGracePeriodSeconds": 120,
+        "LaunchType": "FARGATE",
+        "LoadBalancers": [
+          {
+            "ContainerName": "keycloak",
+            "ContainerPort": 8080,
+            "TargetGroupArn": {
+              "Ref": "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1"
+            }
+          }
+        ],
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "DISABLED",
+            "SecurityGroups": [
+              {
+                "Fn::GetAtt": [
+                  "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D",
+                  "GroupId"
+                ]
+              }
+            ],
+            "Subnets": [
+              {
+                "Ref": "KeyCloakVpcPrivateSubnet1SubnetA692DFFF"
+              },
+              {
+                "Ref": "KeyCloakVpcPrivateSubnet2SubnetC8682D75"
+              }
+            ]
+          }
+        },
+        "TaskDefinition": {
+          "Ref": "KeyCloakKeyCloakContainerSerivceTaskDef30C9533A"
+        }
+      },
+      "DependsOn": [
+        "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1",
+        "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerC2CE6A5D"
+      ]
+    },
+    "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "testing-stack/KeyCloak/KeyCloakContainerSerivce/Service/SecurityGroup",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1"
+          }
+        ],
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        }
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceServiceSecurityGroupfromtestingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup1362024478000685C465": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "Description": "kc jgroups-tcp",
+        "FromPort": 7800,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D",
+            "GroupId"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D",
+            "GroupId"
+          ]
+        },
+        "ToPort": 7800
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceServiceSecurityGroupfromtestingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup1362024457800E39CAF46": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "Description": "kc jgroups-tcp-fd",
+        "FromPort": 57800,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D",
+            "GroupId"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D",
+            "GroupId"
+          ]
+        },
+        "ToPort": 57800
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceServiceSecurityGroupfromtestingstackKeyCloakKeyCloakContainerSerivceALBSecurityGroup9A136B9E8080A83FDCE7": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": "tcp",
+        "Description": "Load balancer to target",
+        "FromPort": 8080,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D",
+            "GroupId"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceALBSecurityGroup8F5103C6",
+            "GroupId"
+          ]
+        },
+        "ToPort": 8080
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceALBE100B67D": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "LoadBalancerAttributes": [
+          {
+            "Key": "deletion_protection.enabled",
+            "Value": "false"
+          }
+        ],
+        "Scheme": "internal",
+        "SecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "KeyCloakKeyCloakContainerSerivceALBSecurityGroup8F5103C6",
+              "GroupId"
+            ]
+          }
+        ],
+        "Subnets": [
+          {
+            "Ref": "KeyCloakVpcPrivateSubnet1SubnetA692DFFF"
+          },
+          {
+            "Ref": "KeyCloakVpcPrivateSubnet2SubnetC8682D75"
+          }
+        ],
+        "Type": "application"
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceALBSecurityGroup8F5103C6": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Automatically created Security Group for ELB testingstackKeyCloakKeyCloakContainerSerivceALBD5B956EA",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow from anyone on port 80",
+            "FromPort": 80,
+            "IpProtocol": "tcp",
+            "ToPort": 80
+          }
+        ],
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        }
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceALBSecurityGrouptotestingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup136202448080E4E9B388": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceALBSecurityGroup8F5103C6",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "Description": "Load balancer to target",
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D",
+            "GroupId"
+          ]
+        },
+        "FromPort": 8080,
+        "ToPort": 8080
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerC2CE6A5D": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "KeyCloakKeyCloakContainerSerivceALBE100B67D"
+        },
+        "Port": 80,
+        "Protocol": "HTTP"
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "HealthyThresholdCount": 3,
+        "Port": 80,
+        "Protocol": "HTTP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "slow_start.duration_seconds",
+            "Value": "60"
+          },
+          {
+            "Key": "stickiness.enabled",
+            "Value": "true"
+          },
+          {
+            "Key": "stickiness.type",
+            "Value": "lb_cookie"
+          },
+          {
+            "Key": "stickiness.lb_cookie.duration_seconds",
+            "Value": "86400"
+          }
+        ],
+        "TargetType": "ip",
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        }
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceNLBB675FC1D": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "LoadBalancerAttributes": [
+          {
+            "Key": "deletion_protection.enabled",
+            "Value": "true"
+          }
+        ],
+        "Scheme": "internet-facing",
+        "Subnets": [
+          {
+            "Ref": "KeyCloakVpcPublicSubnet1Subnet0762DA88"
+          },
+          {
+            "Ref": "KeyCloakVpcPublicSubnet2Subnet22049636"
+          }
+        ],
+        "Type": "network"
+      },
+      "DependsOn": [
+        "KeyCloakVpcPublicSubnet1DefaultRoute438FBE69",
+        "KeyCloakVpcPublicSubnet1RouteTableAssociationFF91B678",
+        "KeyCloakVpcPublicSubnet2DefaultRouteCFC19404",
+        "KeyCloakVpcPublicSubnet2RouteTableAssociation3117C73A"
+      ]
+    },
+    "KeyCloakKeyCloakContainerSerivceNLBNLBTCPListener81FA21ED": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "KeyCloakKeyCloakContainerSerivceNLBTargetGroupF960FAD1"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "KeyCloakKeyCloakContainerSerivceNLBB675FC1D"
+        },
+        "Certificates": [
+          {
+            "CertificateArn": "MOCK_ARN"
+          }
+        ],
+        "Port": 443,
+        "Protocol": "TLS"
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceNLBTargetGroupF960FAD1": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Port": 80,
+        "Protocol": "TCP",
+        "Targets": [
+          {
+            "Id": {
+              "Ref": "KeyCloakKeyCloakContainerSerivceALBE100B67D"
+            },
+            "Port": 80
+          }
+        ],
+        "TargetType": "alb",
+        "VpcId": {
+          "Ref": "KeyCloakVpcF3901B3A"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "KeyCloakDatabaseDBSecretArn28BEB641": {
+      "Value": {
+        "Ref": "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B"
+      }
+    },
+    "KeyCloakDatabaseclusterEndpointHostname38FB0D1E": {
+      "Value": {
+        "Fn::GetAtt": [
+          "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
+          "Endpoint.Address"
+        ]
+      }
+    },
+    "KeyCloakDatabaseclusterIdentifierF00C290B": {
+      "Value": {
+        "Ref": "KeyCloakDatabaseAuroraServerlessClusterDB73D16F"
+      }
+    },
+    "KeyCloakKeyCloakContainerSerivceEndpointURL9C81E19A": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Fn::GetAtt": [
+                "KeyCloakKeyCloakContainerSerivceALBE100B67D",
+                "DNSName"
+              ]
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "Mappings": {
+    "KeyCloakKeyCloakContainerSerivceKeycloakImageMapF79EAEA3": {
+      "aws": {
+        "uri": "quay.io/keycloak/keycloak:21.0.1"
+      },
+      "aws-cn": {
+        "uri": "048912060910.dkr.ecr.cn-northwest-1.amazonaws.com.cn/dockerhub/jboss/keycloak:21.0.1"
+      }
+    }
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Type": "AWS::SSM::Parameter::Value<String>",
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+    }
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5"
+                  ],
+                  {
+                    "Ref": "BootstrapVersion"
+                  }
+                ]
+              }
+            ]
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+        }
+      ]
+    }
+  }
+}
