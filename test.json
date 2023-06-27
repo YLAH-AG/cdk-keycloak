@@ -369,10 +369,10 @@
         }
       }
     },
-    "KeyCloakDatabaseAuroraServerlessClusterSubnets6166944B": {
+    "KeyCloakDatabaseDBClusterSubnetsE36F1B1B": {
       "Type": "AWS::RDS::DBSubnetGroup",
       "Properties": {
-        "DBSubnetGroupDescription": "Subnets for AuroraServerlessCluster database",
+        "DBSubnetGroupDescription": "Subnets for DBCluster database",
         "SubnetIds": [
           {
             "Ref": "KeyCloakVpcPrivateSubnet1SubnetA692DFFF"
@@ -385,7 +385,7 @@
       "UpdateReplacePolicy": "Retain",
       "DeletionPolicy": "Retain"
     },
-    "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641": {
+    "KeyCloakDatabaseDBClusterSecurityGroup843B4392": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "RDS security group",
@@ -429,41 +429,41 @@
         }
       }
     },
-    "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupfromtestingstackKeyCloakDatabaseAuroraServerlessClusterSecurityGroup272BD4AE3306CF8351DE": {
+    "KeyCloakDatabaseDBClusterSecurityGroupfromtestingstackKeyCloakDatabaseDBClusterSecurityGroup47C2CEB43306D8263E37": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
         "IpProtocol": "tcp",
-        "Description": "from testingstackKeyCloakDatabaseAuroraServerlessClusterSecurityGroup272BD4AE:3306",
+        "Description": "from testingstackKeyCloakDatabaseDBClusterSecurityGroup47C2CEB4:3306",
         "FromPort": 3306,
         "GroupId": {
           "Fn::GetAtt": [
-            "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
+            "KeyCloakDatabaseDBClusterSecurityGroup843B4392",
             "GroupId"
           ]
         },
         "SourceSecurityGroupId": {
           "Fn::GetAtt": [
-            "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
+            "KeyCloakDatabaseDBClusterSecurityGroup843B4392",
             "GroupId"
           ]
         },
         "ToPort": 3306
       }
     },
-    "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupfromtestingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup13620244IndirectPort17F65634": {
+    "KeyCloakDatabaseDBClusterSecurityGroupfromtestingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup13620244IndirectPort9F72EBBF": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
         "IpProtocol": "tcp",
         "Description": "from testingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup13620244:{IndirectPort}",
         "FromPort": {
           "Fn::GetAtt": [
-            "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
+            "KeyCloakDatabaseDBCluster06E9C0E1",
             "Endpoint.Port"
           ]
         },
         "GroupId": {
           "Fn::GetAtt": [
-            "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
+            "KeyCloakDatabaseDBClusterSecurityGroup843B4392",
             "GroupId"
           ]
         },
@@ -475,13 +475,13 @@
         },
         "ToPort": {
           "Fn::GetAtt": [
-            "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
+            "KeyCloakDatabaseDBCluster06E9C0E1",
             "Endpoint.Port"
           ]
         }
       }
     },
-    "testingstackKeyCloakDatabaseAuroraServerlessClusterSecretE2492D2F3fdaad7efa858a3daf9490cf0a702aeb": {
+    "testingstackKeyCloakDatabaseDBClusterSecret754146743fdaad7efa858a3daf9490cf0a702aeb": {
       "Type": "AWS::SecretsManager::Secret",
       "Properties": {
         "Description": {
@@ -505,19 +505,19 @@
       "UpdateReplacePolicy": "Delete",
       "DeletionPolicy": "Delete"
     },
-    "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B": {
+    "KeyCloakDatabaseDBClusterSecretAttachment50401C92": {
       "Type": "AWS::SecretsManager::SecretTargetAttachment",
       "Properties": {
         "SecretId": {
-          "Ref": "testingstackKeyCloakDatabaseAuroraServerlessClusterSecretE2492D2F3fdaad7efa858a3daf9490cf0a702aeb"
+          "Ref": "testingstackKeyCloakDatabaseDBClusterSecret754146743fdaad7efa858a3daf9490cf0a702aeb"
         },
         "TargetId": {
-          "Ref": "KeyCloakDatabaseAuroraServerlessClusterDB73D16F"
+          "Ref": "KeyCloakDatabaseDBCluster06E9C0E1"
         },
         "TargetType": "AWS::RDS::DBCluster"
       }
     },
-    "KeyCloakDatabaseAuroraServerlessClusterDB73D16F": {
+    "KeyCloakDatabaseDBCluster06E9C0E1": {
       "Type": "AWS::RDS::DBCluster",
       "Properties": {
         "BackupRetentionPeriod": 7,
@@ -525,11 +525,11 @@
         "DatabaseName": "keycloak",
         "DBClusterParameterGroupName": "default.aurora-mysql8.0",
         "DBSubnetGroupName": {
-          "Ref": "KeyCloakDatabaseAuroraServerlessClusterSubnets6166944B"
+          "Ref": "KeyCloakDatabaseDBClusterSubnetsE36F1B1B"
         },
-        "DeletionProtection": true,
+        "DeletionProtection": false,
         "Engine": "aurora-mysql",
-        "EngineMode": "serverless",
+        "EngineVersion": "5.7.mysql_aurora.2.09.1",
         "MasterUsername": "admin",
         "MasterUserPassword": {
           "Fn::Join": [
@@ -537,7 +537,7 @@
             [
               "{{resolve:secretsmanager:",
               {
-                "Ref": "testingstackKeyCloakDatabaseAuroraServerlessClusterSecretE2492D2F3fdaad7efa858a3daf9490cf0a702aeb"
+                "Ref": "testingstackKeyCloakDatabaseDBClusterSecret754146743fdaad7efa858a3daf9490cf0a702aeb"
               },
               ":SecretString:password::}}"
             ]
@@ -547,12 +547,54 @@
         "VpcSecurityGroupIds": [
           {
             "Fn::GetAtt": [
-              "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
+              "KeyCloakDatabaseDBClusterSecurityGroup843B4392",
               "GroupId"
             ]
           }
         ]
       },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain"
+    },
+    "KeyCloakDatabaseDBClusterInstance12532FD3D": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBClusterIdentifier": {
+          "Ref": "KeyCloakDatabaseDBCluster06E9C0E1"
+        },
+        "DBInstanceClass": "db.r5.large",
+        "DBSubnetGroupName": {
+          "Ref": "KeyCloakDatabaseDBClusterSubnetsE36F1B1B"
+        },
+        "Engine": "aurora-mysql"
+      },
+      "DependsOn": [
+        "KeyCloakVpcPrivateSubnet1DefaultRouteA309AD23",
+        "KeyCloakVpcPrivateSubnet1RouteTableAssociationD9158DB8",
+        "KeyCloakVpcPrivateSubnet2DefaultRoute8D3CC7CF",
+        "KeyCloakVpcPrivateSubnet2RouteTableAssociation4BA8795B"
+      ],
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain"
+    },
+    "KeyCloakDatabaseDBClusterInstance2EE80EFE4": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBClusterIdentifier": {
+          "Ref": "KeyCloakDatabaseDBCluster06E9C0E1"
+        },
+        "DBInstanceClass": "db.r5.large",
+        "DBSubnetGroupName": {
+          "Ref": "KeyCloakDatabaseDBClusterSubnetsE36F1B1B"
+        },
+        "Engine": "aurora-mysql"
+      },
+      "DependsOn": [
+        "KeyCloakVpcPrivateSubnet1DefaultRouteA309AD23",
+        "KeyCloakVpcPrivateSubnet1RouteTableAssociationD9158DB8",
+        "KeyCloakVpcPrivateSubnet2DefaultRoute8D3CC7CF",
+        "KeyCloakVpcPrivateSubnet2RouteTableAssociation4BA8795B"
+      ],
       "UpdateReplacePolicy": "Retain",
       "DeletionPolicy": "Retain"
     },
@@ -572,13 +614,15 @@
         ]
       },
       "DependsOn": [
-        "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
-        "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B",
-        "testingstackKeyCloakDatabaseAuroraServerlessClusterSecretE2492D2F3fdaad7efa858a3daf9490cf0a702aeb",
-        "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupfromtestingstackKeyCloakDatabaseAuroraServerlessClusterSecurityGroup272BD4AE3306CF8351DE",
-        "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupfromtestingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup13620244IndirectPort17F65634",
-        "KeyCloakDatabaseAuroraServerlessClusterSecurityGroupF0CB4641",
-        "KeyCloakDatabaseAuroraServerlessClusterSubnets6166944B"
+        "KeyCloakDatabaseDBClusterInstance12532FD3D",
+        "KeyCloakDatabaseDBClusterInstance2EE80EFE4",
+        "KeyCloakDatabaseDBCluster06E9C0E1",
+        "KeyCloakDatabaseDBClusterSecretAttachment50401C92",
+        "testingstackKeyCloakDatabaseDBClusterSecret754146743fdaad7efa858a3daf9490cf0a702aeb",
+        "KeyCloakDatabaseDBClusterSecurityGroupfromtestingstackKeyCloakDatabaseDBClusterSecurityGroup47C2CEB43306D8263E37",
+        "KeyCloakDatabaseDBClusterSecurityGroupfromtestingstackKeyCloakKeyCloakContainerSerivceServiceSecurityGroup13620244IndirectPort9F72EBBF",
+        "KeyCloakDatabaseDBClusterSecurityGroup843B4392",
+        "KeyCloakDatabaseDBClusterSubnetsE36F1B1B"
       ]
     },
     "KeyCloakKeyCloakContainerSerivceTaskRole0658CED2": {
@@ -644,7 +688,7 @@
               ],
               "Effect": "Allow",
               "Resource": {
-                "Ref": "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B"
+                "Ref": "KeyCloakDatabaseDBClusterSecretAttachment50401C92"
               }
             },
             {
@@ -800,7 +844,7 @@
                       "jdbc:mysql://",
                       {
                         "Fn::GetAtt": [
-                          "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
+                          "KeyCloakDatabaseDBCluster06E9C0E1",
                           "Endpoint.Address"
                         ]
                       },
@@ -818,7 +862,8 @@
                 "Value": "admin"
               },
               {
-                "Name": "KC_HOSTNAME"
+                "Name": "KC_HOSTNAME",
+                "Value": "keycloak.test"
               },
               {
                 "Name": "KC_HOSTNAME_STRICT_BACKCHANNEL",
@@ -827,6 +872,10 @@
               {
                 "Name": "KC_PROXY",
                 "Value": "edge"
+              },
+              {
+                "Name": "JAVA_OPTS",
+                "Value": "-DHelloWorld"
               }
             ],
             "Essential": true,
@@ -874,7 +923,7 @@
                     "",
                     [
                       {
-                        "Ref": "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B"
+                        "Ref": "KeyCloakDatabaseDBClusterSecretAttachment50401C92"
                       },
                       ":password::"
                     ]
@@ -912,7 +961,7 @@
             ]
           }
         ],
-        "Cpu": "4096",
+        "Cpu": "2048",
         "ExecutionRoleArn": {
           "Fn::GetAtt": [
             "KeyCloakKeyCloakContainerSerivceTaskRole0658CED2",
@@ -920,7 +969,7 @@
           ]
         },
         "Family": "testingstackKeyCloakKeyCloakContainerSerivceTaskDef799BAD5B",
-        "Memory": "8192",
+        "Memory": "4096",
         "NetworkMode": "awsvpc",
         "RequiresCompatibilities": [
           "FARGATE"
@@ -1037,7 +1086,7 @@
             "ContainerName": "keycloak",
             "ContainerPort": 8080,
             "TargetGroupArn": {
-              "Ref": "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1"
+              "Ref": "KeyCloakKeyCloakContainerSerivceALBALBHttpsListenerECSTargetGroupA6169207"
             }
           }
         ],
@@ -1067,8 +1116,8 @@
         }
       },
       "DependsOn": [
-        "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1",
-        "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerC2CE6A5D"
+        "KeyCloakKeyCloakContainerSerivceALBALBHttpsListenerECSTargetGroupA6169207",
+        "KeyCloakKeyCloakContainerSerivceALBALBHttpsListener1DB5CBCF"
       ]
     },
     "KeyCloakKeyCloakContainerSerivceServiceSecurityGroup4C80023D": {
@@ -1186,10 +1235,10 @@
         "SecurityGroupIngress": [
           {
             "CidrIp": "0.0.0.0/0",
-            "Description": "Allow from anyone on port 80",
-            "FromPort": 80,
+            "Description": "Allow from anyone on port 443",
+            "FromPort": 443,
             "IpProtocol": "tcp",
-            "ToPort": 80
+            "ToPort": 443
           }
         ],
         "VpcId": {
@@ -1218,13 +1267,13 @@
         "ToPort": 8080
       }
     },
-    "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerC2CE6A5D": {
+    "KeyCloakKeyCloakContainerSerivceALBALBHttpsListener1DB5CBCF": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
       "Properties": {
         "DefaultActions": [
           {
             "TargetGroupArn": {
-              "Ref": "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1"
+              "Ref": "KeyCloakKeyCloakContainerSerivceALBALBHttpsListenerECSTargetGroupA6169207"
             },
             "Type": "forward"
           }
@@ -1232,11 +1281,16 @@
         "LoadBalancerArn": {
           "Ref": "KeyCloakKeyCloakContainerSerivceALBE100B67D"
         },
-        "Port": 80,
-        "Protocol": "HTTP"
+        "Certificates": [
+          {
+            "CertificateArn": "MOCK_ARN"
+          }
+        ],
+        "Port": 443,
+        "Protocol": "HTTPS"
       }
     },
-    "KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1": {
+    "KeyCloakKeyCloakContainerSerivceALBALBHttpsListenerECSTargetGroupA6169207": {
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
       "Properties": {
         "HealthyThresholdCount": 3,
@@ -1265,94 +1319,25 @@
           "Ref": "KeyCloakVpcF3901B3A"
         }
       }
-    },
-    "KeyCloakKeyCloakContainerSerivceNLBB675FC1D": {
-      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      "Properties": {
-        "LoadBalancerAttributes": [
-          {
-            "Key": "deletion_protection.enabled",
-            "Value": "true"
-          }
-        ],
-        "Scheme": "internet-facing",
-        "Subnets": [
-          {
-            "Ref": "KeyCloakVpcPublicSubnet1Subnet0762DA88"
-          },
-          {
-            "Ref": "KeyCloakVpcPublicSubnet2Subnet22049636"
-          }
-        ],
-        "Type": "network"
-      },
-      "DependsOn": [
-        "KeyCloakVpcPublicSubnet1DefaultRoute438FBE69",
-        "KeyCloakVpcPublicSubnet1RouteTableAssociationFF91B678",
-        "KeyCloakVpcPublicSubnet2DefaultRouteCFC19404",
-        "KeyCloakVpcPublicSubnet2RouteTableAssociation3117C73A"
-      ]
-    },
-    "KeyCloakKeyCloakContainerSerivceNLBNLBTCPListener81FA21ED": {
-      "Type": "AWS::ElasticLoadBalancingV2::Listener",
-      "Properties": {
-        "DefaultActions": [
-          {
-            "TargetGroupArn": {
-              "Ref": "KeyCloakKeyCloakContainerSerivceNLBTargetGroupF960FAD1"
-            },
-            "Type": "forward"
-          }
-        ],
-        "LoadBalancerArn": {
-          "Ref": "KeyCloakKeyCloakContainerSerivceNLBB675FC1D"
-        },
-        "Certificates": [
-          {
-            "CertificateArn": "MOCK_ARN"
-          }
-        ],
-        "Port": 443,
-        "Protocol": "TLS"
-      }
-    },
-    "KeyCloakKeyCloakContainerSerivceNLBTargetGroupF960FAD1": {
-      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-      "Properties": {
-        "Port": 80,
-        "Protocol": "TCP",
-        "Targets": [
-          {
-            "Id": {
-              "Ref": "KeyCloakKeyCloakContainerSerivceALBE100B67D"
-            },
-            "Port": 80
-          }
-        ],
-        "TargetType": "alb",
-        "VpcId": {
-          "Ref": "KeyCloakVpcF3901B3A"
-        }
-      }
     }
   },
   "Outputs": {
     "KeyCloakDatabaseDBSecretArn28BEB641": {
       "Value": {
-        "Ref": "KeyCloakDatabaseAuroraServerlessClusterSecretAttachmentA32F9C7B"
+        "Ref": "KeyCloakDatabaseDBClusterSecretAttachment50401C92"
       }
     },
     "KeyCloakDatabaseclusterEndpointHostname38FB0D1E": {
       "Value": {
         "Fn::GetAtt": [
-          "KeyCloakDatabaseAuroraServerlessClusterDB73D16F",
+          "KeyCloakDatabaseDBCluster06E9C0E1",
           "Endpoint.Address"
         ]
       }
     },
     "KeyCloakDatabaseclusterIdentifierF00C290B": {
       "Value": {
-        "Ref": "KeyCloakDatabaseAuroraServerlessClusterDB73D16F"
+        "Ref": "KeyCloakDatabaseDBCluster06E9C0E1"
       }
     },
     "KeyCloakKeyCloakContainerSerivceEndpointURL9C81E19A": {

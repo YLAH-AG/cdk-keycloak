@@ -2,7 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import {
   aws_certificatemanager as certmgr,
   aws_ec2 as ec2, aws_ecs as ecs, aws_elasticloadbalancingv2 as elbv2,
-  aws_elasticloadbalancingv2_targets as elbTargets,
+  // aws_elasticloadbalancingv2_targets as elbTargets,
   aws_iam as iam,
   aws_logs as logs,
   aws_rds as rds,
@@ -286,7 +286,7 @@ export class KeyCloak extends Construct {
   readonly vpc: ec2.IVpc;
   readonly db?: Database;
   readonly applicationLoadBalancer: elbv2.ApplicationLoadBalancer;
-  readonly networkLoadBalancer: elbv2.NetworkLoadBalancer;
+  // readonly networkLoadBalancer: elbv2.NetworkLoadBalancer;
   readonly keycloakSecret: secretsmanager.ISecret;
   constructor(scope: Construct, id: string, props: KeyCloakProps) {
     super(scope, id);
@@ -307,8 +307,8 @@ export class KeyCloak extends Construct {
       instanceType: props.databaseInstanceType,
       instanceEngine: props.instanceEngine,
       clusterEngine: props.clusterEngine,
-      auroraServerless: props.auroraServerless,
-      auroraServerlessV2: props.auroraServerlessV2,
+      auroraServerless: false,
+      auroraServerlessV2: false,
       singleDbInstance: props.singleDbInstance,
       backupRetention: props.backupRetention,
       maxCapacity: props.databaseMaxCapacity,
@@ -334,7 +334,7 @@ export class KeyCloak extends Construct {
     });
 
     this.applicationLoadBalancer = keycloakContainerService.applicationLoadBalancer;
-    this.networkLoadBalancer = keycloakContainerService.networkLoadBalancer;
+    // this.networkLoadBalancer = keycloakContainerService.networkLoadBalancer;
     if (!cdk.Stack.of(this).templateOptions.description) {
       cdk.Stack.of(this).templateOptions.description = '(SO8021) - Deploy keycloak on AWS with cdk-keycloak construct library';
     }
@@ -501,7 +501,7 @@ export class Database extends Construct {
       credentials: rds.Credentials.fromGeneratedSecret('admin'),
       instanceType: props.instanceType ?? new ec2.InstanceType('r5.large'),
       parameterGroup: rds.ParameterGroup.fromParameterGroupName(this, 'ParameterGroup', 'default.mysql8.0'),
-      deletionProtection: true,
+      deletionProtection: false,
       removalPolicy: props.removalPolicy ?? cdk.RemovalPolicy.RETAIN,
     });
     return {
@@ -518,7 +518,7 @@ export class Database extends Construct {
         version: rds.AuroraMysqlEngineVersion.VER_2_09_1,
       }),
       defaultDatabaseName: 'keycloak',
-      deletionProtection: true,
+      deletionProtection: false,
       credentials: rds.Credentials.fromGeneratedSecret('admin'),
       instanceProps: {
         vpc: props.vpc,
@@ -547,7 +547,7 @@ export class Database extends Construct {
       vpcSubnets: props.databaseSubnets,
       credentials: rds.Credentials.fromGeneratedSecret('admin'),
       backupRetention: props.backupRetention ?? cdk.Duration.days(7),
-      deletionProtection: true,
+      deletionProtection: false,
       removalPolicy: props.removalPolicy ?? cdk.RemovalPolicy.RETAIN,
       parameterGroup: rds.ParameterGroup.fromParameterGroupName(this, 'ParameterGroup', 'default.aurora-mysql8.0'),
     });
@@ -565,7 +565,7 @@ export class Database extends Construct {
         version: rds.AuroraMysqlEngineVersion.VER_3_02_0,
       }),
       defaultDatabaseName: 'keycloak',
-      deletionProtection: true,
+      deletionProtection: false,
       credentials: rds.Credentials.fromGeneratedSecret('admin'),
       instanceProps: {
         vpc: props.vpc,
@@ -686,7 +686,7 @@ export interface ContainerServiceProps {
 export class ContainerService extends Construct {
   readonly service: ecs.FargateService;
   readonly applicationLoadBalancer: elbv2.ApplicationLoadBalancer;
-  readonly networkLoadBalancer: elbv2.NetworkLoadBalancer;
+  // readonly networkLoadBalancer: elbv2.NetworkLoadBalancer;
   readonly keycloakUserSecret: secretsmanager.ISecret;
   constructor(scope: Construct, id: string, props: ContainerServiceProps) {
     super(scope, id);
@@ -694,7 +694,7 @@ export class ContainerService extends Construct {
     const region = cdk.Stack.of(this).region;
     const containerPort = 8080;
     const connectionString = `jdbc:mysql://${props.database.clusterEndpointHostname}:3306/keycloak`;
-    const protocol = elbv2.ApplicationProtocol.HTTP;
+    // const protocol = elbv2.ApplicationProtocol.HTTP;
     const entryPoint = ['/opt/keycloak/bin/kc.sh', 'start', '--optimized'];
     const s3PingBucket = new s3.Bucket(this, 'keycloak_s3_ping');
     const image = props.containerImage ?? ecs.ContainerImage.fromRegistry(this.getKeyCloakDockerImageUri(props.keycloakVersion.version));
@@ -718,8 +718,8 @@ export class ContainerService extends Construct {
       ),
     });
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'TaskDef', {
-      cpu: 4096,
-      memoryLimitMiB: 8192,
+      cpu: 2048,
+      memoryLimitMiB: 4096,
       executionRole,
     });
 
@@ -794,6 +794,8 @@ export class ContainerService extends Construct {
       });
     };
 
+    // listener protocol 'TLS' is not supported with a target group with the target-type 'ALB'
+
     this.applicationLoadBalancer = new elbv2.ApplicationLoadBalancer(this, 'ALB', {
       vpc,
       vpcSubnets: props.privateSubnets,
@@ -803,11 +805,13 @@ export class ContainerService extends Construct {
     });
     printOutput(this, 'EndpointURL', `https://${this.applicationLoadBalancer.loadBalancerDnsName}`);
 
-    const listener = this.applicationLoadBalancer.addListener('ALB_TCPListener', { protocol });
-
+    const listener = this.applicationLoadBalancer.addListener('ALB_HttpsListener', {
+      protocol: elbv2.ApplicationProtocol.HTTPS,
+      certificates: [{ certificateArn: props.certificate.certificateArn }],
+    });
+    // "If the target type is ALB, the target must have at least one listener that matches the target group port or any specified port overrides
     listener.addTargets('ECSTarget', {
-      protocol,
-      port: 80,
+      protocol: elbv2.ApplicationProtocol.HTTP,
       slowStart: cdk.Duration.seconds(60),
       stickinessCookieDuration: props.stickinessCookieDuration ?? cdk.Duration.days(1),
       targets: [this.service],
@@ -816,29 +820,28 @@ export class ContainerService extends Construct {
       },
     });
 
-    this.networkLoadBalancer = new elbv2.NetworkLoadBalancer(this, 'NLB', {
-      vpc,
-      vpcSubnets: props.publicSubnets,
-      internetFacing: true,
-      deletionProtection: true,
-    });
+    // this.networkLoadBalancer = new elbv2.NetworkLoadBalancer(this, 'NLB', {
+    //   vpc,
+    //   vpcSubnets: props.publicSubnets,
+    //   internetFacing: true,
+    //   deletionProtection: false,
+    // });
 
-    const albTarget = new elbTargets.AlbTarget(this.applicationLoadBalancer, 80);
+    // const nlbTargetToAlb = new elbv2.NetworkTargetGroup(this, 'NLB_TargetGroup', {
+    //   targetType: elbv2.TargetType.ALB,
+    //   port: 80,
+    //   protocol: elbv2.Protocol.TCP,
+    //   targets: [new elbTargets.AlbTarget(this.applicationLoadBalancer, 443)],
+    //   vpc,
+    // });
 
-    const nlbTargetToAlb = new elbv2.NetworkTargetGroup(this, 'NLB_TargetGroup', {
-      targetType: elbv2.TargetType.ALB,
-      port: 80,
-      protocol: elbv2.Protocol.TCP,
-      targets: [albTarget],
-      vpc,
-    });
+    // nlbTargetToAlb.node.addDependency(listener);
 
-    this.networkLoadBalancer.addListener('NLB_TCPListener', {
-      port: 443,
-      protocol: elbv2.Protocol.TLS,
-      certificates: [{ certificateArn: props.certificate.certificateArn }],
-      defaultAction: elbv2.NetworkListenerAction.forward([nlbTargetToAlb]),
-    });
+    // this.networkLoadBalancer.addListener('NLB_TCPListener', {
+    //   port: 80,
+    //   protocol: elbv2.Protocol.TCP,
+    //   defaultAction: elbv2.NetworkListenerAction.forward([nlbTargetToAlb]),
+    // });
 
     // allow task execution role to read the secrets
     props.database.secret.grantRead(taskDefinition.executionRole!);

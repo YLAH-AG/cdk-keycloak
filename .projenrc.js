@@ -10,7 +10,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
   jsiiFqn: 'projen.AwsCdkConstructLibrary',
   name: 'cdk-keycloak',
   majorVersion: 2,
-  repositoryUrl: 'https://github.com/aws-samples/cdk-keycloak.git',
+  repositoryUrl: 'https://github.com/YLAH-AG/cdk-keycloak.git',
   // devDeps: [
   //   '@types/prettier@<2.6.0',
   // ],

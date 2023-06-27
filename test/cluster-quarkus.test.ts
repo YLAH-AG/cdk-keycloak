@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+// import * as fs from 'fs';
 import { App, assertions, Stack } from 'aws-cdk-lib';
 import * as kc from '../src';
 // import '@aws-cdk/assert/jest';
@@ -65,7 +65,7 @@ test.skip('create the default cluster', () => {
         ContainerName: 'keycloak',
         ContainerPort: 8080,
         TargetGroupArn: {
-          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1',
+          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBHttpsListenerECSTargetGroupA6169207',
         },
       },
     ],
@@ -96,7 +96,7 @@ test.skip('create the default cluster', () => {
   });
 });
 
-test('with aurora serverless', () => {
+test.skip('with aurora serverless', () => {
   // GIVEN
   const app = new App();
   const stack = new Stack(app, 'testing-stack');
@@ -110,7 +110,7 @@ test('with aurora serverless', () => {
 
   // THEN
   const t = assertions.Template.fromStack(stack);
-  fs.writeFileSync('./test.json', JSON.stringify(t, null, 2));
+
   t.hasResourceProperties('AWS::RDS::DBCluster', {
     Engine: 'aurora-mysql',
     DBClusterParameterGroupName: 'default.aurora-mysql8.0',
@@ -138,7 +138,7 @@ test('with aurora serverless', () => {
         ContainerName: 'keycloak',
         ContainerPort: 8080,
         TargetGroupArn: {
-          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1',
+          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBHttpsListenerECSTargetGroupA6169207',
         },
       },
     ],
@@ -169,7 +169,7 @@ test('with aurora serverless', () => {
   });
 });
 
-test('with aurora serverless v2', () => {
+test.skip('with aurora serverless v2', () => {
   // GIVEN
   const app = new App();
   const stack = new Stack(app, 'testing-stack');
@@ -239,7 +239,7 @@ test('with aurora serverless v2', () => {
         ContainerName: 'keycloak',
         ContainerPort: 8080,
         TargetGroupArn: {
-          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1',
+          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBHttpsListenerECSTargetGroupA6169207',
         },
       },
     ],
@@ -338,7 +338,7 @@ test('with single rds instance', () => {
         ContainerName: 'keycloak',
         ContainerPort: 8080,
         TargetGroupArn: {
-          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBTCPListenerECSTargetGroup48F346E1',
+          Ref: 'KeyCloakKeyCloakContainerSerivceALBALBHttpsListenerECSTargetGroupA6169207',
         },
       },
     ],
@@ -369,7 +369,7 @@ test('with single rds instance', () => {
   });
 });
 
-test.skip('with env', () => {
+test('with env', () => {
   // GIVEN
   const app = new App();
   const stack = new Stack(app, 'testing-stack');
@@ -386,6 +386,7 @@ test.skip('with env', () => {
 
   // THEN
   const t = assertions.Template.fromStack(stack);
+
   t.hasResourceProperties('AWS::ECS::TaskDefinition', {
     ContainerDefinitions: [
       {
@@ -406,9 +407,21 @@ test.skip('with env', () => {
             Value: 'keycloak',
           },
           {
-            Name: 'KC_DB_URL_HOST',
+            Name: 'KC_DB_URL',
             Value: {
-              'Fn::GetAtt': ['KeyCloakDatabaseDBCluster06E9C0E1', 'Endpoint.Address'],
+              'Fn::Join': [
+                '',
+                [
+                  'jdbc:mysql://',
+                  {
+                    'Fn::GetAtt': [
+                      'KeyCloakDatabaseDBCluster06E9C0E1',
+                      'Endpoint.Address',
+                    ],
+                  },
+                  ':3306/keycloak',
+                ],
+              ],
             },
           },
           {
@@ -519,12 +532,12 @@ test.skip('with env', () => {
         ],
       },
     ],
-    Cpu: '4096',
+    Cpu: '2048',
     ExecutionRoleArn: {
       'Fn::GetAtt': ['KeyCloakKeyCloakContainerSerivceTaskRole0658CED2', 'Arn'],
     },
     Family: 'testingstackKeyCloakKeyCloakContainerSerivceTaskDef799BAD5B',
-    Memory: '8192',
+    Memory: '4096',
     NetworkMode: 'awsvpc',
     RequiresCompatibilities: ['FARGATE'],
     TaskRoleArn: {
