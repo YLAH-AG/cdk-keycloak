@@ -754,6 +754,7 @@ export class ContainerService extends Construct {
       KC_HOSTNAME: props.hostname!,
       KC_HOSTNAME_STRICT_BACKCHANNEL: 'true',
       KC_PROXY: 'edge',
+      KC_HEALTH_ENABLED: 'true',
     };
 
     const kc = taskDefinition.addContainer('keycloak', {
@@ -798,8 +799,8 @@ export class ContainerService extends Construct {
 
     this.applicationLoadBalancer = new elbv2.ApplicationLoadBalancer(this, 'ALB', {
       vpc,
-      vpcSubnets: props.privateSubnets,
-      internetFacing: false,
+      vpcSubnets: props.publicSubnets,
+      internetFacing: true,
       // vpcSubnets: props.internetFacing ? props.publicSubnets : props.privateSubnets,
       // internetFacing: props.internetFacing,
     });
@@ -819,29 +820,6 @@ export class ContainerService extends Construct {
         healthyThresholdCount: 3,
       },
     });
-
-    // this.networkLoadBalancer = new elbv2.NetworkLoadBalancer(this, 'NLB', {
-    //   vpc,
-    //   vpcSubnets: props.publicSubnets,
-    //   internetFacing: true,
-    //   deletionProtection: false,
-    // });
-
-    // const nlbTargetToAlb = new elbv2.NetworkTargetGroup(this, 'NLB_TargetGroup', {
-    //   targetType: elbv2.TargetType.ALB,
-    //   port: 80,
-    //   protocol: elbv2.Protocol.TCP,
-    //   targets: [new elbTargets.AlbTarget(this.applicationLoadBalancer, 443)],
-    //   vpc,
-    // });
-
-    // nlbTargetToAlb.node.addDependency(listener);
-
-    // this.networkLoadBalancer.addListener('NLB_TCPListener', {
-    //   port: 80,
-    //   protocol: elbv2.Protocol.TCP,
-    //   defaultAction: elbv2.NetworkListenerAction.forward([nlbTargetToAlb]),
-    // });
 
     // allow task execution role to read the secrets
     props.database.secret.grantRead(taskDefinition.executionRole!);
