@@ -445,6 +445,10 @@ test('with env', () => {
             Value: 'edge',
           },
           {
+            Name: 'KC_HEALTH_ENABLED',
+            Value: 'true',
+          },
+          {
             Name: 'JAVA_OPTS',
             Value: '-DHelloWorld',
           },
