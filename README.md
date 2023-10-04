@@ -1,3 +1,23 @@
+
+# Cloud Development Kit for Keycloak
+
+## General info
+This repository is a fork of the [aws-samples](https://github.com/aws-samples) repository with a sample Keycloak
+configuration on AWS with CDK: [repo](https://github.com/aws-samples/cdk-keycloak).
+
+The fork was created in order to update the configuration, for it to work as required within Ylah infrastructure. 
+
+
+## Customizations
+The scope of changes in the fork includes:
+> TODO: update the scope of changes introduced in the fork
+
+
+<br><br><br>
+
+-----------
+_Original Readme.md_
+
 [![NPM version](https://badge.fury.io/js/cdk-keycloak.svg)](https://badge.fury.io/js/cdk-keycloak)
 [![PyPI version](https://badge.fury.io/py/cdk-keycloak.svg)](https://badge.fury.io/py/cdk-keycloak)
 ![Release](https://github.com/aws-samples/cdk-keycloak/workflows/Release/badge.svg?branch=main)
