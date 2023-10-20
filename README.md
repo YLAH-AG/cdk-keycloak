@@ -13,6 +13,15 @@ The scope of changes in the fork includes:
 > TODO: update the scope of changes introduced in the fork
 
 
+## How to use
+
+1. install dependencies: `npm install`
+2. introduce required changes
+3. build the software: `npx projen build`
+4. commit changes and note the commit hash
+5. update `package.json` files in dependent repositories with the commit hash
+6. run `npm install` in dependent repositories to update the KeyCloak Construct
+
 <br><br><br>
 
 -----------
