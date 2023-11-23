@@ -1,13 +1,15 @@
 import * as cdk from 'aws-cdk-lib';
 import {
   aws_certificatemanager as certmgr,
-  aws_ec2 as ec2, aws_ecs as ecs, aws_elasticloadbalancingv2 as elbv2,
-  // aws_elasticloadbalancingv2_targets as elbTargets,
+  aws_ec2 as ec2,
+  aws_ecs as ecs,
+  aws_elasticloadbalancingv2 as elbv2,
   aws_iam as iam,
   aws_logs as logs,
   aws_rds as rds,
   aws_s3 as s3,
   aws_secretsmanager as secretsmanager,
+  RemovalPolicy,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -757,7 +759,7 @@ export class ContainerService extends Construct {
     const connectionString = `jdbc:mysql://${props.database.clusterEndpointHostname}:3306/keycloak`;
     // const protocol = elbv2.ApplicationProtocol.HTTP;
     const entryPoint = ['/opt/keycloak/bin/kc.sh', 'start', '--optimized'];
-    const s3PingBucket = new s3.Bucket(this, 'keycloak_s3_ping');
+    const s3PingBucket = new s3.Bucket(this, 'keycloak_s3_ping', { removalPolicy: RemovalPolicy.DESTROY });
     const image = props.containerImage ?? ecs.ContainerImage.fromRegistry(this.getKeyCloakDockerImageUri(props.keycloakVersion.version));
     const secrets: {[key: string]: cdk.aws_ecs.Secret} = {
       KC_DB_PASSWORD: ecs.Secret.fromSecretsManager(props.database.secret, 'password'),
