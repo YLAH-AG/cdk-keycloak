@@ -50,9 +50,11 @@ new ContainerService(scope: Construct, id: string, props: ContainerServiceProps)
   * **bastion** (<code>boolean</code>)  Whether to create the bastion host. __*Default*__: false
   * **circuitBreaker** (<code>boolean</code>)  Whether to enable the ECS service deployment circuit breaker. __*Default*__: false
   * **containerImage** (<code>[aws_ecs.ContainerImage](#aws-cdk-lib-aws-ecs-containerimage)</code>)  Overrides the default image. __*Default*__: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+  * **cpu** (<code>number</code>)  The number of cpu units used by the Keycloak task. __*Default*__: 2048
   * **env** (<code>Map<string, string></code>)  The environment variables to pass to the keycloak container. __*Optional*__
   * **hostname** (<code>string</code>)  The hostname to use for the keycloak server. __*Optional*__
   * **internetFacing** (<code>boolean</code>)  Whether to put the put the load balancer in the public or private subnets. __*Default*__: true
+  * **memoryLimitMiB** (<code>number</code>)  The amount (in MiB) of memory used by the task. __*Default*__: 4096
   * **nodeCount** (<code>number</code>)  Number of keycloak node in the cluster. __*Default*__: 1
   * **privateSubnets** (<code>[aws_ec2.SubnetSelection](#aws-cdk-lib-aws-ec2-subnetselection)</code>)  VPC subnets for keycloak service. __*Optional*__
   * **publicSubnets** (<code>[aws_ec2.SubnetSelection](#aws-cdk-lib-aws-ec2-subnetselection)</code>)  VPC public subnets for ALB. __*Optional*__
@@ -220,9 +222,11 @@ addKeyCloakContainerService(props: ContainerServiceProps): ContainerService
   * **bastion** (<code>boolean</code>)  Whether to create the bastion host. __*Default*__: false
   * **circuitBreaker** (<code>boolean</code>)  Whether to enable the ECS service deployment circuit breaker. __*Default*__: false
   * **containerImage** (<code>[aws_ecs.ContainerImage](#aws-cdk-lib-aws-ecs-containerimage)</code>)  Overrides the default image. __*Default*__: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+  * **cpu** (<code>number</code>)  The number of cpu units used by the Keycloak task. __*Default*__: 2048
   * **env** (<code>Map<string, string></code>)  The environment variables to pass to the keycloak container. __*Optional*__
   * **hostname** (<code>string</code>)  The hostname to use for the keycloak server. __*Optional*__
   * **internetFacing** (<code>boolean</code>)  Whether to put the put the load balancer in the public or private subnets. __*Default*__: true
+  * **memoryLimitMiB** (<code>number</code>)  The amount (in MiB) of memory used by the task. __*Default*__: 4096
   * **nodeCount** (<code>number</code>)  Number of keycloak node in the cluster. __*Default*__: 1
   * **privateSubnets** (<code>[aws_ec2.SubnetSelection](#aws-cdk-lib-aws-ec2-subnetselection)</code>)  VPC subnets for keycloak service. __*Optional*__
   * **publicSubnets** (<code>[aws_ec2.SubnetSelection](#aws-cdk-lib-aws-ec2-subnetselection)</code>)  VPC public subnets for ALB. __*Optional*__
@@ -308,9 +312,11 @@ Name | Type | Description
 **bastion**? | <code>boolean</code> | Whether to create the bastion host.<br/>__*Default*__: false
 **circuitBreaker**? | <code>boolean</code> | Whether to enable the ECS service deployment circuit breaker.<br/>__*Default*__: false
 **containerImage**? | <code>[aws_ecs.ContainerImage](#aws-cdk-lib-aws-ecs-containerimage)</code> | Overrides the default image.<br/>__*Default*__: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+**cpu**? | <code>number</code> | The number of cpu units used by the Keycloak task.<br/>__*Default*__: 2048
 **env**? | <code>Map<string, string></code> | The environment variables to pass to the keycloak container.<br/>__*Optional*__
 **hostname**? | <code>string</code> | The hostname to use for the keycloak server.<br/>__*Optional*__
 **internetFacing**? | <code>boolean</code> | Whether to put the put the load balancer in the public or private subnets.<br/>__*Default*__: true
+**memoryLimitMiB**? | <code>number</code> | The amount (in MiB) of memory used by the task.<br/>__*Default*__: 4096
 **nodeCount**? | <code>number</code> | Number of keycloak node in the cluster.<br/>__*Default*__: 1
 **privateSubnets**? | <code>[aws_ec2.SubnetSelection](#aws-cdk-lib-aws-ec2-subnetselection)</code> | VPC subnets for keycloak service.<br/>__*Optional*__
 **publicSubnets**? | <code>[aws_ec2.SubnetSelection](#aws-cdk-lib-aws-ec2-subnetselection)</code> | VPC public subnets for ALB.<br/>__*Optional*__
