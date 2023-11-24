@@ -312,6 +312,15 @@ export interface KeyCloakProps {
    * @default 4096
    */
   readonly memoryLimitMiB?: number;
+
+
+  /**
+   * Number of instances to spawn in the database cluster (for cluster database options only).
+   * Has to be at least 1.
+   *
+   * @default 2
+   */
+  readonly dbClusterInstances?: number;
 }
 
 export class KeyCloak extends Construct {
@@ -325,7 +334,7 @@ export class KeyCloak extends Construct {
 
     const region = cdk.Stack.of(this).region;
     const regionIsResolved = !cdk.Token.isUnresolved(region);
-    const { cpu = 2048, memoryLimitMiB =4096 } = props;
+    const { cpu = 2048, memoryLimitMiB =4096, dbClusterInstances = 2 } = props;
 
     if (props.auroraServerless && regionIsResolved && !AURORA_SERVERLESS_SUPPORTED_REGIONS.includes(region)) {
       throw new Error(`Aurora serverless is not supported in ${region}`);
@@ -347,6 +356,7 @@ export class KeyCloak extends Construct {
       maxCapacity: props.databaseMaxCapacity,
       minCapacity: props.databaseMinCapacity,
       removalPolicy: props.databaseRemovalPolicy,
+      dbClusterInstances: dbClusterInstances,
     });
     const keycloakContainerService = this.addKeyCloakContainerService({
       database: this.db,
@@ -463,6 +473,13 @@ export interface DatabaseProps {
    * @default RemovalPolicy.RETAIN
    */
   readonly removalPolicy?: cdk.RemovalPolicy;
+
+  /**
+   * Number of instances to spawn in the database cluster (for cluster database options only).
+   *
+   * @default 2
+   */
+  readonly dbClusterInstances?: number;
 }
 
 /**
@@ -552,6 +569,7 @@ export class Database extends Construct {
       engine: props.clusterEngine ?? rds.DatabaseClusterEngine.auroraMysql({
         version: rds.AuroraMysqlEngineVersion.VER_2_09_1,
       }),
+      instances: props.dbClusterInstances ?? 2,
       defaultDatabaseName: 'keycloak',
       deletionProtection: false,
       credentials: rds.Credentials.fromGeneratedSecret('admin'),
@@ -599,6 +617,7 @@ export class Database extends Construct {
       engine: props.clusterEngine ?? rds.DatabaseClusterEngine.auroraMysql({
         version: rds.AuroraMysqlEngineVersion.VER_3_02_0,
       }),
+      instances: props.dbClusterInstances ?? 2,
       defaultDatabaseName: 'keycloak',
       deletionProtection: false,
       credentials: rds.Credentials.fromGeneratedSecret('admin'),

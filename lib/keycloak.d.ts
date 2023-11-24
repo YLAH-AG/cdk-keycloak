@@ -251,6 +251,13 @@ export interface KeyCloakProps {
      * @default 4096
      */
     readonly memoryLimitMiB?: number;
+    /**
+     * Number of instances to spawn in the database cluster (for cluster database options only).
+     * Has to be at least 1.
+     *
+     * @default 2
+     */
+    readonly dbClusterInstances?: number;
 }
 export declare class KeyCloak extends Construct {
     readonly vpc: ec2.IVpc;
@@ -331,6 +338,12 @@ export interface DatabaseProps {
      * @default RemovalPolicy.RETAIN
      */
     readonly removalPolicy?: cdk.RemovalPolicy;
+    /**
+     * Number of instances to spawn in the database cluster (for cluster database options only).
+     *
+     * @default 2
+     */
+    readonly dbClusterInstances?: number;
 }
 /**
  * Database configuration
