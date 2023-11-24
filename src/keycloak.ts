@@ -313,7 +313,6 @@ export interface KeyCloakProps {
    */
   readonly memoryLimitMiB?: number;
 
-
   /**
    * Number of instances to spawn in the database cluster (for cluster database options only).
    * Has to be at least 1.
