@@ -1,13 +1,15 @@
 import * as cdk from 'aws-cdk-lib';
 import {
   aws_certificatemanager as certmgr,
-  aws_ec2 as ec2, aws_ecs as ecs, aws_elasticloadbalancingv2 as elbv2,
-  // aws_elasticloadbalancingv2_targets as elbTargets,
+  aws_ec2 as ec2,
+  aws_ecs as ecs,
+  aws_elasticloadbalancingv2 as elbv2,
   aws_iam as iam,
   aws_logs as logs,
   aws_rds as rds,
   aws_s3 as s3,
   aws_secretsmanager as secretsmanager,
+  RemovalPolicy,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -280,6 +282,44 @@ export interface KeyCloakProps {
    * @default quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
    */
   readonly containerImage?: ecs.ContainerImage;
+
+  /**
+   * The number of cpu units used by the Keycloak task.
+   * You must use one of the following values, which determines your range of valid values for the memory parameter:
+   * 256 (.25 vCPU) - Available memory values: 512 (0.5 GB), 1024 (1 GB), 2048 (2 GB)
+   * 512 (.5 vCPU) - Available memory values: 1024 (1 GB), 2048 (2 GB), 3072 (3 GB), 4096 (4 GB)
+   * 1024 (1 vCPU) - Available memory values: 2048 (2 GB), 3072 (3 GB), 4096 (4 GB), 5120 (5 GB), 6144 (6 GB), 7168 (7 GB), 8192 (8 GB)
+   * 2048 (2 vCPU) - Available memory values: Between 4096 (4 GB) and 16384 (16 GB) in increments of 1024 (1 GB)
+   * 4096 (4 vCPU) - Available memory values: Between 8192 (8 GB) and 30720 (30 GB) in increments of 1024 (1 GB)
+   * 8192 (8 vCPU) - Available memory values: Between 16384 (16 GB) and 61440 (60 GB) in increments of 4096 (4 GB)
+   * 16384 (16 vCPU) - Available memory values: Between 32768 (32 GB) and 122880 (120 GB) in increments of 8192 (8 GB)
+   *
+   * @default 2048
+   */
+  readonly cpu?: number;
+
+  /**
+   * The amount (in MiB) of memory used by the task.
+   * You must use one of the following values, which determines your range of valid values for the cpu parameter:
+   * 512 (0.5 GB), 1024 (1 GB), 2048 (2 GB) - Available cpu values: 256 (.25 vCPU)
+   * 1024 (1 GB), 2048 (2 GB), 3072 (3 GB), 4096 (4 GB) - Available cpu values: 512 (.5 vCPU)
+   * 2048 (2 GB), 3072 (3 GB), 4096 (4 GB), 5120 (5 GB), 6144 (6 GB), 7168 (7 GB), 8192 (8 GB) - Available cpu values: 1024 (1 vCPU)
+   * Between 4096 (4 GB) and 16384 (16 GB) in increments of 1024 (1 GB) - Available cpu values: 2048 (2 vCPU)
+   * Between 8192 (8 GB) and 30720 (30 GB) in increments of 1024 (1 GB) - Available cpu values: 4096 (4 vCPU)
+   * Between 16384 (16 GB) and 61440 (60 GB) in increments of 4096 (4 GB) - Available cpu values: 8192 (8 vCPU)
+   * Between 32768 (32 GB) and 122880 (120 GB) in increments of 8192 (8 GB) - Available cpu values: 16384 (16 vCPU)
+   *
+   * @default 4096
+   */
+  readonly memoryLimitMiB?: number;
+
+  /**
+   * Number of instances to spawn in the database cluster (for cluster database options only).
+   * Has to be at least 1.
+   *
+   * @default 2
+   */
+  readonly dbClusterInstances?: number;
 }
 
 export class KeyCloak extends Construct {
@@ -293,6 +333,7 @@ export class KeyCloak extends Construct {
 
     const region = cdk.Stack.of(this).region;
     const regionIsResolved = !cdk.Token.isUnresolved(region);
+    const { cpu = 2048, memoryLimitMiB =4096, dbClusterInstances = 2 } = props;
 
     if (props.auroraServerless && regionIsResolved && !AURORA_SERVERLESS_SUPPORTED_REGIONS.includes(region)) {
       throw new Error(`Aurora serverless is not supported in ${region}`);
@@ -314,6 +355,7 @@ export class KeyCloak extends Construct {
       maxCapacity: props.databaseMaxCapacity,
       minCapacity: props.databaseMinCapacity,
       removalPolicy: props.databaseRemovalPolicy,
+      dbClusterInstances: dbClusterInstances,
     });
     const keycloakContainerService = this.addKeyCloakContainerService({
       database: this.db,
@@ -331,6 +373,8 @@ export class KeyCloak extends Construct {
       internetFacing: props.internetFacing ?? true,
       hostname: props.hostname,
       containerImage: props.containerImage,
+      cpu,
+      memoryLimitMiB,
     });
 
     this.applicationLoadBalancer = keycloakContainerService.applicationLoadBalancer;
@@ -428,6 +472,13 @@ export interface DatabaseProps {
    * @default RemovalPolicy.RETAIN
    */
   readonly removalPolicy?: cdk.RemovalPolicy;
+
+  /**
+   * Number of instances to spawn in the database cluster (for cluster database options only).
+   *
+   * @default 2
+   */
+  readonly dbClusterInstances?: number;
 }
 
 /**
@@ -517,6 +568,7 @@ export class Database extends Construct {
       engine: props.clusterEngine ?? rds.DatabaseClusterEngine.auroraMysql({
         version: rds.AuroraMysqlEngineVersion.VER_2_09_1,
       }),
+      instances: props.dbClusterInstances ?? 2,
       defaultDatabaseName: 'keycloak',
       deletionProtection: false,
       credentials: rds.Credentials.fromGeneratedSecret('admin'),
@@ -564,6 +616,7 @@ export class Database extends Construct {
       engine: props.clusterEngine ?? rds.DatabaseClusterEngine.auroraMysql({
         version: rds.AuroraMysqlEngineVersion.VER_3_02_0,
       }),
+      instances: props.dbClusterInstances ?? 2,
       defaultDatabaseName: 'keycloak',
       deletionProtection: false,
       credentials: rds.Credentials.fromGeneratedSecret('admin'),
@@ -681,6 +734,32 @@ export interface ContainerServiceProps {
    * @default quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
    */
   readonly containerImage?: ecs.ContainerImage;
+
+  /**
+   * The number of cpu units used by the Keycloak task.
+   * You must use one of the following values, which determines your range of valid values for the memory parameter:
+   * 256 (.25 vCPU) - Available memory values: 512 (0.5 GB), 1024 (1 GB), 2048 (2 GB)
+   * 512 (.5 vCPU) - Available memory values: 1024 (1 GB), 2048 (2 GB), 3072 (3 GB), 4096 (4 GB)
+   * 1024 (1 vCPU) - Available memory values: 2048 (2 GB), 3072 (3 GB), 4096 (4 GB), 5120 (5 GB), 6144 (6 GB), 7168 (7 GB), 8192 (8 GB)
+   * 2048 (2 vCPU) - Available memory values: Between 4096 (4 GB) and 16384 (16 GB) in increments of 1024 (1 GB)
+   * 4096 (4 vCPU) - Available memory values: Between 8192 (8 GB) and 30720 (30 GB) in increments of 1024 (1 GB)
+   * 8192 (8 vCPU) - Available memory values: Between 16384 (16 GB) and 61440 (60 GB) in increments of 4096 (4 GB)
+   * 16384 (16 vCPU) - Available memory values: Between 32768 (32 GB) and 122880 (120 GB) in increments of 8192 (8 GB)
+   */
+  readonly cpu: number;
+
+  /**
+   * The amount (in MiB) of memory used by the task.
+   * You must use one of the following values, which determines your range of valid values for the cpu parameter:
+   * 512 (0.5 GB), 1024 (1 GB), 2048 (2 GB) - Available cpu values: 256 (.25 vCPU)
+   * 1024 (1 GB), 2048 (2 GB), 3072 (3 GB), 4096 (4 GB) - Available cpu values: 512 (.5 vCPU)
+   * 2048 (2 GB), 3072 (3 GB), 4096 (4 GB), 5120 (5 GB), 6144 (6 GB), 7168 (7 GB), 8192 (8 GB) - Available cpu values: 1024 (1 vCPU)
+   * Between 4096 (4 GB) and 16384 (16 GB) in increments of 1024 (1 GB) - Available cpu values: 2048 (2 vCPU)
+   * Between 8192 (8 GB) and 30720 (30 GB) in increments of 1024 (1 GB) - Available cpu values: 4096 (4 vCPU)
+   * Between 16384 (16 GB) and 61440 (60 GB) in increments of 4096 (4 GB) - Available cpu values: 8192 (8 vCPU)
+   * Between 32768 (32 GB) and 122880 (120 GB) in increments of 8192 (8 GB) - Available cpu values: 16384 (16 vCPU)
+   */
+  readonly memoryLimitMiB: number;
 }
 
 export class ContainerService extends Construct {
@@ -691,12 +770,14 @@ export class ContainerService extends Construct {
   constructor(scope: Construct, id: string, props: ContainerServiceProps) {
     super(scope, id);
 
+    const { cpu, memoryLimitMiB } = props;
+
     const region = cdk.Stack.of(this).region;
     const containerPort = 8080;
     const connectionString = `jdbc:mysql://${props.database.clusterEndpointHostname}:3306/keycloak`;
     // const protocol = elbv2.ApplicationProtocol.HTTP;
     const entryPoint = ['/opt/keycloak/bin/kc.sh', 'start', '--optimized'];
-    const s3PingBucket = new s3.Bucket(this, 'keycloak_s3_ping');
+    const s3PingBucket = new s3.Bucket(this, 'keycloak_s3_ping', { removalPolicy: RemovalPolicy.DESTROY });
     const image = props.containerImage ?? ecs.ContainerImage.fromRegistry(this.getKeyCloakDockerImageUri(props.keycloakVersion.version));
     const secrets: {[key: string]: cdk.aws_ecs.Secret} = {
       KC_DB_PASSWORD: ecs.Secret.fromSecretsManager(props.database.secret, 'password'),
@@ -718,8 +799,8 @@ export class ContainerService extends Construct {
       ),
     });
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'TaskDef', {
-      cpu: 2048,
-      memoryLimitMiB: 4096,
+      cpu,
+      memoryLimitMiB,
       executionRole,
     });
 
