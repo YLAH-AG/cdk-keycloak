@@ -53,6 +53,7 @@ new ContainerService(scope: Construct, id: string, props: ContainerServiceProps)
   * **circuitBreaker** (<code>boolean</code>)  Whether to enable the ECS service deployment circuit breaker. __*Default*__: false
   * **containerImage** (<code>[aws_ecs.ContainerImage](#aws-cdk-lib-aws-ecs-containerimage)</code>)  Overrides the default image. __*Default*__: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
   * **env** (<code>Map<string, string></code>)  The environment variables to pass to the keycloak container. __*Optional*__
+  * **healthCheckPath** (<code>string</code>)  Healthcheck URL for the Target Group to evaluate the state of the task. __*Default*__: /
   * **hostname** (<code>string</code>)  The hostname to use for the keycloak server. __*Optional*__
   * **internetFacing** (<code>boolean</code>)  Whether to put the put the load balancer in the public or private subnets. __*Default*__: true
   * **nodeCount** (<code>number</code>)  Number of keycloak node in the cluster. __*Default*__: 1
@@ -157,6 +158,7 @@ new KeyCloak(scope: Construct, id: string, props: KeyCloakProps)
   * **databaseSubnets** (<code>[aws_ec2.SubnetSelection](#aws-cdk-lib-aws-ec2-subnetselection)</code>)  VPC subnets for database. __*Default*__: VPC isolated subnets
   * **dbClusterInstances** (<code>number</code>)  Number of instances to spawn in the database cluster (for cluster database options only). __*Default*__: 2
   * **env** (<code>Map<string, string></code>)  The environment variables to pass to the keycloak container. __*Optional*__
+  * **healthCheckPath** (<code>string</code>)  Healthcheck URL for the Target Group to evaluate the state of the task. __*Optional*__
   * **hostname** (<code>string</code>)  The hostname to use for the keycloak server. __*Optional*__
   * **instanceEngine** (<code>[aws_rds.IInstanceEngine](#aws-cdk-lib-aws-rds-iinstanceengine)</code>)  The database instance engine. __*Default*__: MySQL 8.0.21
   * **internetFacing** (<code>boolean</code>)  Whether to put the load balancer in the public or private subnets. __*Default*__: true
@@ -230,6 +232,7 @@ addKeyCloakContainerService(props: ContainerServiceProps): ContainerService
   * **circuitBreaker** (<code>boolean</code>)  Whether to enable the ECS service deployment circuit breaker. __*Default*__: false
   * **containerImage** (<code>[aws_ecs.ContainerImage](#aws-cdk-lib-aws-ecs-containerimage)</code>)  Overrides the default image. __*Default*__: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
   * **env** (<code>Map<string, string></code>)  The environment variables to pass to the keycloak container. __*Optional*__
+  * **healthCheckPath** (<code>string</code>)  Healthcheck URL for the Target Group to evaluate the state of the task. __*Default*__: /
   * **hostname** (<code>string</code>)  The hostname to use for the keycloak server. __*Optional*__
   * **internetFacing** (<code>boolean</code>)  Whether to put the put the load balancer in the public or private subnets. __*Default*__: true
   * **nodeCount** (<code>number</code>)  Number of keycloak node in the cluster. __*Default*__: 1
@@ -320,6 +323,7 @@ Name | Type | Description
 **circuitBreaker**? | <code>boolean</code> | Whether to enable the ECS service deployment circuit breaker.<br/>__*Default*__: false
 **containerImage**? | <code>[aws_ecs.ContainerImage](#aws-cdk-lib-aws-ecs-containerimage)</code> | Overrides the default image.<br/>__*Default*__: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
 **env**? | <code>Map<string, string></code> | The environment variables to pass to the keycloak container.<br/>__*Optional*__
+**healthCheckPath**? | <code>string</code> | Healthcheck URL for the Target Group to evaluate the state of the task.<br/>__*Default*__: /
 **hostname**? | <code>string</code> | The hostname to use for the keycloak server.<br/>__*Optional*__
 **internetFacing**? | <code>boolean</code> | Whether to put the put the load balancer in the public or private subnets.<br/>__*Default*__: true
 **nodeCount**? | <code>number</code> | Number of keycloak node in the cluster.<br/>__*Default*__: 1
@@ -396,6 +400,7 @@ Name | Type | Description
 **databaseSubnets**? | <code>[aws_ec2.SubnetSelection](#aws-cdk-lib-aws-ec2-subnetselection)</code> | VPC subnets for database.<br/>__*Default*__: VPC isolated subnets
 **dbClusterInstances**? | <code>number</code> | Number of instances to spawn in the database cluster (for cluster database options only).<br/>__*Default*__: 2
 **env**? | <code>Map<string, string></code> | The environment variables to pass to the keycloak container.<br/>__*Optional*__
+**healthCheckPath**? | <code>string</code> | Healthcheck URL for the Target Group to evaluate the state of the task.<br/>__*Optional*__
 **hostname**? | <code>string</code> | The hostname to use for the keycloak server.<br/>__*Optional*__
 **instanceEngine**? | <code>[aws_rds.IInstanceEngine](#aws-cdk-lib-aws-rds-iinstanceengine)</code> | The database instance engine.<br/>__*Default*__: MySQL 8.0.21
 **internetFacing**? | <code>boolean</code> | Whether to put the load balancer in the public or private subnets.<br/>__*Default*__: true

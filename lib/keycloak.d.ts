@@ -258,6 +258,11 @@ export interface KeyCloakProps {
      * @default 2
      */
     readonly dbClusterInstances?: number;
+    /**
+     * Healthcheck URL for the Target Group to evaluate the state of the task.
+     * HTTP 200 response is expected.
+     */
+    readonly healthCheckPath?: string;
 }
 export declare class KeyCloak extends Construct {
     readonly vpc: ec2.IVpc;
@@ -485,6 +490,13 @@ export interface ContainerServiceProps {
      * Between 32768 (32 GB) and 122880 (120 GB) in increments of 8192 (8 GB) - Available cpu values: 16384 (16 vCPU)
      */
     readonly memoryLimitMiB: number;
+    /**
+     * Healthcheck URL for the Target Group to evaluate the state of the task.
+     * HTTP 200 response is expected.
+     *
+     * @default /
+     */
+    readonly healthCheckPath?: string;
 }
 export declare class ContainerService extends Construct {
     readonly service: ecs.FargateService;
