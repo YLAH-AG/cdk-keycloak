@@ -320,6 +320,12 @@ export interface KeyCloakProps {
    * @default 2
    */
   readonly dbClusterInstances?: number;
+
+  /**
+   * Healthcheck URL for the Target Group to evaluate the state of the task.
+   * HTTP 200 response is expected.
+   */
+  readonly healthCheckPath?: string;
 }
 
 export class KeyCloak extends Construct {
@@ -333,7 +339,7 @@ export class KeyCloak extends Construct {
 
     const region = cdk.Stack.of(this).region;
     const regionIsResolved = !cdk.Token.isUnresolved(region);
-    const { cpu = 2048, memoryLimitMiB =4096, dbClusterInstances = 2 } = props;
+    const { cpu = 2048, memoryLimitMiB =4096, dbClusterInstances = 2, healthCheckPath } = props;
 
     if (props.auroraServerless && regionIsResolved && !AURORA_SERVERLESS_SUPPORTED_REGIONS.includes(region)) {
       throw new Error(`Aurora serverless is not supported in ${region}`);
@@ -375,6 +381,7 @@ export class KeyCloak extends Construct {
       containerImage: props.containerImage,
       cpu,
       memoryLimitMiB,
+      healthCheckPath,
     });
 
     this.applicationLoadBalancer = keycloakContainerService.applicationLoadBalancer;
@@ -760,6 +767,14 @@ export interface ContainerServiceProps {
    * Between 32768 (32 GB) and 122880 (120 GB) in increments of 8192 (8 GB) - Available cpu values: 16384 (16 vCPU)
    */
   readonly memoryLimitMiB: number;
+
+  /**
+   * Healthcheck URL for the Target Group to evaluate the state of the task.
+   * HTTP 200 response is expected.
+   *
+   * @default /
+   */
+  readonly healthCheckPath?: string;
 }
 
 export class ContainerService extends Construct {
@@ -770,7 +785,7 @@ export class ContainerService extends Construct {
   constructor(scope: Construct, id: string, props: ContainerServiceProps) {
     super(scope, id);
 
-    const { cpu, memoryLimitMiB } = props;
+    const { cpu, memoryLimitMiB, healthCheckPath = '/' } = props;
 
     const region = cdk.Stack.of(this).region;
     const containerPort = 8080;
@@ -899,6 +914,7 @@ export class ContainerService extends Construct {
       targets: [this.service],
       healthCheck: {
         healthyThresholdCount: 3,
+        path: healthCheckPath,
       },
     });
 
